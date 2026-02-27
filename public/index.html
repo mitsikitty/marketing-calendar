@@ -169,6 +169,7 @@ body {
 .pill-paidloc { background:#0668E1; color:#fff; }
 .pill-web  { background:#10b981; color:#fff; }
 .pill-email{ background:#6b7280; color:#fff; }
+.pill-campaign { background:transparent; color:var(--text-muted); border:1px solid var(--border); font-style:italic; }
 
 .event.campaigns { background:var(--campaigns-bg); border-left-color:var(--campaigns); }
 .event.campaigns .event-title { color:var(--campaigns-text); }
@@ -236,6 +237,18 @@ body {
   padding:10px; border:1px solid var(--border);
   white-space:pre-wrap; word-break:break-word;
 }
+.pf-edit {
+  width:100%; background:var(--surface2); border:1px solid var(--border);
+  border-radius:4px; padding:8px 10px; color:var(--text); font-family:inherit;
+  font-size:12px; line-height:1.6; resize:vertical; transition:border-color .12s;
+}
+.pf-edit:focus { outline:none; border-color:#7c3aed; box-shadow:0 0 0 2px rgba(124,58,237,0.1); }
+.pf-edit-input {
+  width:100%; background:var(--surface2); border:1px solid var(--border);
+  border-radius:4px; padding:4px 8px; color:var(--text); font-family:inherit;
+  font-size:12px; transition:border-color .12s;
+}
+.pf-edit-input:focus { outline:none; border-color:#7c3aed; box-shadow:0 0 0 2px rgba(124,58,237,0.1); }
 .pf-status {
   display:inline-flex; align-items:center;
   padding:3px 10px; border-radius:20px;
@@ -343,7 +356,6 @@ body {
     <div class="panel-header">
       <span class="panel-title" id="panelTitle">Task</span>
       <div class="panel-actions">
-        <a class="btn btn-icon" id="panelOpenLink" href="#" target="_blank" title="Open in ClickUp" style="text-decoration:none;font-size:11px">↗ Open</a>
         <button class="panel-close" onclick="closePanel()">×</button>
       </div>
     </div>
@@ -378,8 +390,38 @@ body {
       </select>
     </div>
     <div class="field-row">
+      <div class="field">
+        <label>Content Type <span style="color:#ef4444">*</span></label>
+        <select id="f-type" required>
+          <option value="">— select —</option>
+          <option value="0">Selling Season</option>
+          <option value="1">Always On</option>
+          <option value="2">Campaign</option>
+          <option value="3">TikTok</option>
+          <option value="4">Reel</option>
+          <option value="5">Carousel</option>
+          <option value="6">Image</option>
+          <option value="7">Stories</option>
+          <option value="8">FB Post</option>
+          <option value="9">EDM</option>
+          <option value="10">Blog</option>
+          <option value="11">Pop Up</option>
+          <option value="12">Web Banner</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Hemisphere <span style="color:#ef4444">*</span></label>
+        <select id="f-hemisphere" required>
+          <option value="">— select —</option>
+          <option value="0">Both</option>
+          <option value="1">Southern</option>
+          <option value="2">Northern</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-row">
       <div class="field"><label>Start Date</label><input type="date" id="f-start" /></div>
-      <div class="field"><label>Due / End Date</label><input type="date" id="f-end" /></div>
+      <div class="field"><label>End Date</label><input type="date" id="f-end" /></div>
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal()">Cancel</button>
@@ -596,10 +638,6 @@ function render() {
     addBtn.addEventListener("click", e => { e.stopPropagation(); openModal(cell.date); });
     div.appendChild(addBtn);
 
-    div.addEventListener("click", e => {
-      if(e.target===div||e.target===numDiv) openModal(cell.date);
-    });
-
     const dayTasks = tasks.filter(t => {
       const s = parseDate(t.start), e = parseDate(t.end) || parseDate(t.start);
       if(!s&&!e) return false;
@@ -661,6 +699,12 @@ function render() {
             p.textContent = locName;
             pillsDiv.appendChild(p);
           });
+          if(t.campaign) {
+            const p = document.createElement("span");
+            p.className = "pill pill-campaign";
+            p.textContent = t.campaign;
+            pillsDiv.appendChild(p);
+          }
           if(pillsDiv.children.length) evDiv.appendChild(pillsDiv);
         }
       } else {
@@ -679,10 +723,8 @@ async function openPanel(task) {
   const panel = document.getElementById("taskPanel");
   const content = document.getElementById("panelContent");
   const titleEl = document.getElementById("panelTitle");
-  const linkBtn = document.getElementById("panelOpenLink");
 
   titleEl.textContent = task.title;
-  linkBtn.href = task.url || "#";
   content.innerHTML = `<div class="panel-loading"><div class="panel-spinner"></div><span>Loading…</span></div>`;
   panel.classList.add("open");
 
@@ -701,7 +743,6 @@ function renderTaskDetail(detail) {
   _panelDetail = detail;
   const content = document.getElementById("panelContent");
   document.getElementById("panelTitle").textContent = detail.name || "Task";
-  if(detail.url) document.getElementById("panelOpenLink").href = detail.url;
 
   // Interactive status dropdown
   const sc = detail.statusColor || "#6b7280";
@@ -729,12 +770,6 @@ function renderTaskDetail(detail) {
     }).join("");
   }
 
-  // Description
-  let descHtml = "";
-  if(detail.description && detail.description.trim()) {
-    descHtml = `<div class="pf-row"><div class="pf-label">Description</div><div class="pf-desc">${escapeHtml(detail.description)}</div></div>`;
-  }
-
   // Custom fields — skip structural types and date fields shown in fixed rows
   const SKIP_TYPES = new Set(["list_relationship","tasks_rollup","formula","auto_progress","rollup"]);
   const SKIP_NAMES = new Set(["Publish Date","End date"]);
@@ -756,7 +791,14 @@ function renderTaskDetail(detail) {
         ${statusBadge}
         <span style="font-size:11px;color:var(--text-muted)">${escapeHtml(detail.listName||"")}</span>
       </div>
-      ${descHtml}
+      <div class="pf-row">
+        <div class="pf-label">Title</div>
+        <input class="pf-edit-input" id="edit-title" value="${escapeHtml(detail.name||"")}" />
+      </div>
+      <div class="pf-row">
+        <div class="pf-label">Description</div>
+        <textarea class="pf-edit" id="edit-desc" rows="4">${escapeHtml(detail.description||"")}</textarea>
+      </div>
       <div class="pf-row">
         <div class="pf-label">Assignees</div>
         <div class="pf-val">${assigneeHtml}</div>
@@ -766,11 +808,53 @@ function renderTaskDetail(detail) {
         <div class="pf-val">${fmtDisp(pubIso)}</div>
       </div>
       <div class="pf-row">
-        <div class="pf-label">Campaign Dates</div>
-        <div class="pf-val">${fmtDisp(detail.startDate)} → ${fmtDisp(detail.dueDate)}</div>
+        <div class="pf-label">Start Date</div>
+        <input class="pf-edit-input" type="date" id="edit-start" value="${detail.startDate||""}" />
+      </div>
+      <div class="pf-row">
+        <div class="pf-label">End Date</div>
+        <input class="pf-edit-input" type="date" id="edit-end" value="${detail.dueDate||""}" />
       </div>
       ${fieldsHtml ? `<hr class="pf-divider">${fieldsHtml}` : ""}
+    </div>
+    <div class="panel-footer">
+      <button class="btn btn-primary" id="saveTaskBtn" onclick="saveTaskEdits()">Save Changes</button>
     </div>`;
+}
+
+async function saveTaskEdits() {
+  if(!_panelDetail) return;
+  const btn = document.getElementById("saveTaskBtn");
+  if(btn) { btn.textContent = "Saving…"; btn.disabled = true; }
+  try {
+    const title = document.getElementById("edit-title")?.value.trim();
+    const desc  = document.getElementById("edit-desc")?.value;
+    const start = document.getElementById("edit-start")?.value;
+    const end   = document.getElementById("edit-end")?.value;
+    const res = await fetch(`${API}?action=update`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        id:          _panelDetail.id,
+        name:        title || undefined,
+        description: desc,
+        startDate:   start || null,
+        dueDate:     end   || null,
+      }),
+    });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    // Reload detail from server
+    const r2 = await fetch(`${API}?action=task&id=${_panelDetail.id}`);
+    if(r2.ok) renderTaskDetail(await r2.json());
+    // Update cached task title in local list so calendar re-renders correctly
+    const t = tasks.find(t => t.id === _panelDetail.id);
+    if(t && title) { t.title = title; render(); }
+  } catch(e) {
+    alert("Save failed: " + e.message);
+  } finally {
+    const b = document.getElementById("saveTaskBtn");
+    if(b) { b.textContent = "Save Changes"; b.disabled = false; }
+  }
 }
 
 function renderTaskBasic(task) {
@@ -818,6 +902,8 @@ function openModal(date) {
   document.getElementById("f-start").value = d;
   document.getElementById("f-end").value = d;
   document.getElementById("f-title").value = "";
+  document.getElementById("f-type").value = "";
+  document.getElementById("f-hemisphere").value = "";
   document.getElementById("overlay").classList.add("open");
   setTimeout(() => document.getElementById("f-title").focus(), 120);
 }
@@ -827,6 +913,10 @@ document.getElementById("overlay").addEventListener("click", e => { if(e.target.
 async function createTask() {
   const title = document.getElementById("f-title").value.trim();
   if(!title) { document.getElementById("f-title").focus(); return; }
+  const contentType = document.getElementById("f-type").value;
+  if(!contentType) { document.getElementById("f-type").focus(); return; }
+  const hemisphere = document.getElementById("f-hemisphere").value;
+  if(!hemisphere) { document.getElementById("f-hemisphere").focus(); return; }
   const btn = document.getElementById("createBtn");
   btn.textContent = "Creating…"; btn.disabled = true;
   try {
@@ -835,9 +925,11 @@ async function createTask() {
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({
         title,
-        layer: document.getElementById("f-layer").value,
-        start: document.getElementById("f-start").value,
-        end:   document.getElementById("f-end").value,
+        layer:       document.getElementById("f-layer").value,
+        start:       document.getElementById("f-start").value,
+        end:         document.getElementById("f-end").value,
+        contentType,
+        hemisphere,
       })
     });
     const data = await res.json();

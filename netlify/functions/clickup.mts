@@ -91,6 +91,31 @@ function resolveEndDate(fields: any[]): string | null {
   return new Date(Number(f.value)).toISOString().split("T")[0];
 }
 
+function resolveParentCampaign(fields: any[]): string | null {
+  const f = fields?.find((f: any) =>
+    f.name === "Parent Campaign" || f.name === "Campaign" || f.name === "Related Campaign"
+  );
+  if (!f || f.value === null || f.value === undefined) return null;
+  switch (f.type) {
+    case "drop_down": {
+      const opts: any[] = f.type_config?.options || [];
+      const opt = typeof f.value === "number"
+        ? opts.find((o: any) => o.orderindex === f.value)
+        : opts.find((o: any) => o.id === f.value);
+      return opt?.name || null;
+    }
+    case "short_text": case "text":
+      return typeof f.value === "string" ? f.value : null;
+    case "list_relationship": {
+      const vals = Array.isArray(f.value) ? f.value : [f.value];
+      const names = vals.map((v: any) => v?.name || v?.title || "").filter(Boolean);
+      return names.length ? names.join(", ") : null;
+    }
+    default:
+      return typeof f.value === "string" ? f.value : null;
+  }
+}
+
 export default async (req: Request, context: Context) => {
   const url = new URL(req.url);
   const action = url.searchParams.get("action");
@@ -139,6 +164,7 @@ export default async (req: Request, context: Context) => {
               assignees:   t.assignees?.map((a: any) => ({ id: a.id, name: a.username })) || [],
               type:        resolveContentType(contentTypeField),
               locations:   resolveLocations(publishLocField),
+              campaign:    resolveParentCampaign(cf),
             };
           });
         })
@@ -188,11 +214,12 @@ export default async (req: Request, context: Context) => {
     // ── POST update task ──
     if (action === "update" && req.method === "POST") {
       const body = await req.json() as any;
-      const { id: taskId, status, name, startDate, dueDate } = body;
+      const { id: taskId, status, name, startDate, dueDate, description } = body;
       if (!taskId) return new Response(JSON.stringify({ error: "Missing id" }), { status: 400, headers });
       const payload: any = {};
-      if (status    !== undefined) payload.status    = status;
-      if (name      !== undefined) payload.name      = name;
+      if (status      !== undefined) payload.status      = status;
+      if (name        !== undefined) payload.name        = name;
+      if (description !== undefined) payload.description = description;
       if (startDate !== undefined) payload.start_date = startDate ? new Date(startDate).getTime() : null;
       if (dueDate   !== undefined) payload.due_date   = dueDate   ? new Date(dueDate).getTime()   : null;
       const res = await fetch(`${BASE}/task/${taskId}`, {
@@ -211,11 +238,16 @@ export default async (req: Request, context: Context) => {
     if (action === "create" && req.method === "POST") {
       const body = await req.json() as any;
       const listId = LISTS[body.layer as keyof typeof LISTS] || LISTS.content;
+      const customFields: any[] = [];
+      if (body.contentType !== undefined && body.contentType !== "") {
+        customFields.push({ id: "3cebb834", value: Number(body.contentType) });
+      }
       const payload: any = {
-        name:       body.title,
-        status:     "planning",
-        start_date: body.start ? new Date(body.start).getTime() : undefined,
-        due_date:   body.end   ? new Date(body.end).getTime() : (body.start ? new Date(body.start).getTime() : undefined),
+        name:          body.title,
+        status:        "planning",
+        start_date:    body.start ? new Date(body.start).getTime() : undefined,
+        due_date:      body.end   ? new Date(body.end).getTime() : (body.start ? new Date(body.start).getTime() : undefined),
+        custom_fields: customFields.length ? customFields : undefined,
       };
       const res = await fetch(`${BASE}/list/${listId}/task`, {
         method: "POST",
@@ -223,6 +255,21 @@ export default async (req: Request, context: Context) => {
         body: JSON.stringify(payload),
       });
       const task = await res.json() as any;
+      // Set hemisphere via field endpoint (dynamic field ID lookup)
+      if (body.hemisphere !== undefined && body.hemisphere !== "" && task.id) {
+        try {
+          const fr = await fetch(`${BASE}/list/${listId}/field`, { headers: { Authorization: CLICKUP_TOKEN } });
+          const fd = await fr.json() as any;
+          const hf = (fd.fields || []).find((f: any) => f.name?.toLowerCase().includes("hemisphere"));
+          if (hf?.id) {
+            await fetch(`${BASE}/task/${task.id}/field/${hf.id}`, {
+              method: "POST",
+              headers: { Authorization: CLICKUP_TOKEN, "Content-Type": "application/json" },
+              body: JSON.stringify({ value: Number(body.hemisphere) }),
+            });
+          }
+        } catch { /* best-effort */ }
+      }
       return new Response(JSON.stringify({ id: task.id, url: task.url }), { headers });
     }
 
