@@ -356,6 +356,7 @@ body {
     <div class="panel-header">
       <span class="panel-title" id="panelTitle">Task</span>
       <div class="panel-actions">
+        <button class="btn btn-icon" id="panelOpenBtn" onclick="openTaskUrl()" title="Open in ClickUp" style="font-size:11px">↗ Open</button>
         <button class="panel-close" onclick="closePanel()">×</button>
       </div>
     </div>
@@ -574,6 +575,13 @@ function formatFieldValue(field) {
 
 // ── Panel state ──
 let _panelDetail = null;
+let _panelUrl    = null;
+
+// Open task in browser tab using window.open (avoids OS desktop-app protocol handler)
+function openTaskUrl() {
+  const url = _panelDetail?.url || _panelUrl;
+  if(url) window.open(url, "_blank", "noopener,noreferrer");
+}
 
 function openStatusDrop(e) {
   e.stopPropagation();
@@ -725,6 +733,7 @@ async function openPanel(task) {
   const titleEl = document.getElementById("panelTitle");
 
   titleEl.textContent = task.title;
+  _panelUrl = task.url || null;
   content.innerHTML = `<div class="panel-loading"><div class="panel-spinner"></div><span>Loading…</span></div>`;
   panel.classList.add("open");
 
@@ -843,17 +852,20 @@ async function saveTaskEdits() {
       }),
     });
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
-    // Reload detail from server
-    const r2 = await fetch(`${API}?action=task&id=${_panelDetail.id}`);
-    if(r2.ok) renderTaskDetail(await r2.json());
-    // Update cached task title in local list so calendar re-renders correctly
+    // Show Saved! confirmation before re-rendering
+    const b = document.getElementById("saveTaskBtn");
+    if(b) { b.textContent = "✓ Saved!"; b.style.background = "#059669"; b.disabled = false; }
+    // Update cached task title immediately so calendar reflects change
     const t = tasks.find(t => t.id === _panelDetail.id);
     if(t && title) { t.title = title; render(); }
+    // After brief pause, reload fresh data from server (restores button via re-render)
+    await new Promise(r => setTimeout(r, 1500));
+    const r2 = await fetch(`${API}?action=task&id=${_panelDetail.id}`);
+    if(r2.ok) renderTaskDetail(await r2.json());
   } catch(e) {
     alert("Save failed: " + e.message);
-  } finally {
     const b = document.getElementById("saveTaskBtn");
-    if(b) { b.textContent = "Save Changes"; b.disabled = false; }
+    if(b) { b.textContent = "Save Changes"; b.style.background = ""; b.disabled = false; }
   }
 }
 
