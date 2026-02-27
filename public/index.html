@@ -463,6 +463,24 @@ function locPillClass(l) {
   return m[l] || "pill-generic";
 }
 
+// ── Scroll to current week ──
+function scrollToCurrentWeek() {
+  const grid = document.getElementById("calGrid");
+  const now = new Date();
+  if(now.getFullYear() !== currentYear || now.getMonth() !== currentMonth) return;
+  const firstDay = new Date(currentYear, currentMonth, 1);
+  const startOffset = (firstDay.getDay() + 6) % 7;
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const rem = (7 - ((startOffset + daysInMonth) % 7)) % 7;
+  const numRows = (startOffset + daysInMonth + rem) / 7;
+  const todayRow = Math.floor((startOffset + now.getDate() - 1) / 7);
+  // Use requestAnimationFrame to ensure grid has rendered before measuring
+  requestAnimationFrame(() => {
+    const rowH = grid.scrollHeight / numRows;
+    grid.scrollTop = todayRow * rowH;
+  });
+}
+
 // ── Load tasks ──
 async function loadTasks() {
   const dot = document.getElementById("statusDot");
@@ -474,6 +492,7 @@ async function loadTasks() {
     dot.className = "status-dot";
     dot.title = `Refreshed ${new Date().toLocaleTimeString("en-AU")}`;
     render();
+    scrollToCurrentWeek();
   } catch(e) {
     dot.className = "status-dot error";
     dot.title = "Error: " + e.message;
@@ -577,10 +596,14 @@ function formatFieldValue(field) {
 let _panelDetail = null;
 let _panelUrl    = null;
 
-// Open task in browser tab using window.open (avoids OS desktop-app protocol handler)
+// Open task in browser — open a blank window first, then navigate it to the ClickUp URL.
+// This two-step approach bypasses the OS-level protocol handler that causes the
+// ClickUp desktop app to intercept direct URL navigations.
 function openTaskUrl() {
   const url = _panelDetail?.url || _panelUrl;
-  if(url) window.open(url, "_blank", "noopener,noreferrer");
+  if(!url) return;
+  const w = window.open("", "_blank");
+  if(w) { w.opener = null; w.location.href = url; }
 }
 
 function openStatusDrop(e) {
@@ -959,9 +982,10 @@ async function createTask() {
 }
 
 // ── Nav ──
-document.getElementById("prevBtn").addEventListener("click", () => { currentMonth--; if(currentMonth<0){currentMonth=11;currentYear--;} render(); });
-document.getElementById("nextBtn").addEventListener("click", () => { currentMonth++; if(currentMonth>11){currentMonth=0;currentYear++;} render(); });
-function goToday() { const n=new Date(); currentYear=n.getFullYear(); currentMonth=n.getMonth(); render(); }
+function resetScroll() { requestAnimationFrame(() => { document.getElementById("calGrid").scrollTop = 0; }); }
+document.getElementById("prevBtn").addEventListener("click", () => { currentMonth--; if(currentMonth<0){currentMonth=11;currentYear--;} render(); resetScroll(); });
+document.getElementById("nextBtn").addEventListener("click", () => { currentMonth++; if(currentMonth>11){currentMonth=0;currentYear++;} render(); resetScroll(); });
+function goToday() { const n=new Date(); currentYear=n.getFullYear(); currentMonth=n.getMonth(); render(); scrollToCurrentWeek(); }
 
 // ── Layer toggles ──
 document.querySelectorAll(".layer-toggle").forEach(btn => {
