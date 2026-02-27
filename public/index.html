@@ -274,6 +274,22 @@ body {
 .field input:focus, .field select:focus { border-color:#7c3aed; box-shadow:0 0 0 2px rgba(124,58,237,0.12); }
 .field-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 .modal-footer { display:flex; justify-content:flex-end; gap:8px; margin-top:14px; padding-top:14px; border-top:1px solid var(--border); }
+
+/* ── Status dropdown ── */
+.status-drop {
+  position:absolute; top:calc(100% + 4px); left:0; z-index:200;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:6px; padding:4px; min-width:160px;
+  box-shadow:0 8px 24px var(--shadow);
+  display:none; flex-direction:column; gap:2px;
+}
+.status-drop.open { display:flex; }
+.status-drop-item {
+  border:none; cursor:pointer; padding:5px 10px; border-radius:4px;
+  font-size:11px; font-weight:600; font-family:inherit;
+  text-align:left; text-transform:capitalize; transition:filter .1s;
+}
+.status-drop-item:hover { filter:brightness(1.1); }
 </style>
 </head>
 <body>
@@ -370,7 +386,7 @@ let currentMonth = new Date().getMonth();
 const layerVis = { campaigns:true, content:true, alwayson:true, paid:true, holidays:true };
 
 // ── Theme ──
-let forceDark = null;
+let forceDark = false;
 const themeBtn = document.getElementById("themeBtn");
 function isDark() { return forceDark !== null ? forceDark : window.matchMedia("(prefers-color-scheme:dark)").matches; }
 function applyTheme() {
@@ -429,9 +445,11 @@ function fmtDisp(iso) {
 }
 
 function contrastColor(hex) {
-  if(!hex || !hex.startsWith("#")) return "#1f2937";
-  const h = hex.replace("#","");
-  const r=parseInt(h.slice(0,2),16), g=parseInt(h.slice(2,4),16), b=parseInt(h.slice(4,6),16);
+  if(!hex) return "#1f2937";
+  let h = hex.replace("#","");
+  if(h.length === 3) h = h.split("").map(c => c+c).join("");
+  if(h.length < 6) return "#1f2937";
+  const r=parseInt(h.slice(0,2),16)||0, g=parseInt(h.slice(2,4),16)||0, b=parseInt(h.slice(4,6),16)||0;
   return (r*299 + g*587 + b*114) / 1000 > 140 ? "#111" : "#fff";
 }
 
@@ -443,9 +461,11 @@ function formatFieldValue(field) {
       const opts = type_config?.options || [];
       const opt = opts.find(o => o.orderindex === value || o.id === value);
       if(!opt) return escapeHtml(value);
-      const color = (opt.color && opt.color !== "none" && /^#[0-9a-fA-F]{3,8}$/.test(opt.color)) ? opt.color : "#e5e7eb";
-      const fg = contrastColor(color);
-      return `<span style="display:inline-block;background:${color};color:${fg};border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600">${escapeHtml(opt.name)}</span>`;
+      const color = (opt.color && opt.color !== "none") ? opt.color : null;
+      const bg = color || "var(--surface2)";
+      const fg = color ? contrastColor(color) : "var(--text)";
+      const border = color ? "" : ";border:1px solid var(--border)";
+      return `<span style="display:inline-block;background:${bg};color:${fg};border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600${border}">${escapeHtml(opt.name)}</span>`;
     }
     case "labels": {
       const vals = Array.isArray(value) ? value : [value];
@@ -454,9 +474,12 @@ function formatFieldValue(field) {
         const id = typeof v === "string" ? v : v?.id;
         const opt = opts.find(o => o.id === id);
         const label = opt?.label || opt?.name || String(id);
-        const color = (opt?.color && opt.color !== "none" && /^#[0-9a-fA-F]{3,8}$/.test(opt.color)) ? opt.color : "#e5e7eb";
-        const fg = contrastColor(color);
-        return `<span style="display:inline-block;background:${color};color:${fg};border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin:1px">${escapeHtml(label)}</span>`;
+        const rawColor = opt?.color || (typeof v === "object" ? v?.color : null);
+        const color = (rawColor && rawColor !== "none") ? rawColor : null;
+        const bg = color || "var(--surface2)";
+        const fg = color ? contrastColor(color) : "var(--text)";
+        const border = color ? "" : ";border:1px solid var(--border)";
+        return `<span style="display:inline-block;background:${bg};color:${fg};border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin:1px${border}">${escapeHtml(label)}</span>`;
       }).join(" ");
     }
     case "date": {
@@ -494,6 +517,38 @@ function formatFieldValue(field) {
     }
     default:
       return null;
+  }
+}
+
+// ── Panel state ──
+let _panelDetail = null;
+
+function openStatusDrop(e) {
+  e.stopPropagation();
+  const menu = document.getElementById("statusDropMenu");
+  if(menu) menu.classList.toggle("open");
+}
+document.addEventListener("click", () => {
+  const menu = document.getElementById("statusDropMenu");
+  if(menu) menu.classList.remove("open");
+});
+async function applyStatus(newStatus) {
+  const menu = document.getElementById("statusDropMenu");
+  if(menu) menu.classList.remove("open");
+  if(!_panelDetail) return;
+  try {
+    await fetch(`${API}?action=update`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ id: _panelDetail.id, status: newStatus }),
+    });
+    const res = await fetch(`${API}?action=task&id=${_panelDetail.id}`);
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    renderTaskDetail(await res.json());
+    const t = tasks.find(t => t.id === _panelDetail.id);
+    if(t) t.status = newStatus;
+  } catch(e) {
+    console.error("Status update failed:", e);
   }
 }
 
@@ -608,14 +663,23 @@ async function openPanel(task) {
 }
 
 function renderTaskDetail(detail) {
+  _panelDetail = detail;
   const content = document.getElementById("panelContent");
   document.getElementById("panelTitle").textContent = detail.name || "Task";
   if(detail.url) document.getElementById("panelOpenLink").href = detail.url;
 
-  // Status badge with ClickUp colour
+  // Interactive status dropdown
   const sc = detail.statusColor || "#6b7280";
   const sf = contrastColor(sc);
-  const statusBadge = `<span class="pf-status" style="background:${sc};color:${sf}">${escapeHtml(detail.status||"—")}</span>`;
+  const statusItems = (detail.statuses || []).map(s => {
+    const bg = (s.color && s.color !== "none") ? s.color : "#6b7280";
+    const fg = contrastColor(bg);
+    return `<button class="status-drop-item" style="background:${bg};color:${fg}" onclick="applyStatus(${JSON.stringify(s.status)})">${escapeHtml(s.status)}</button>`;
+  }).join("");
+  const statusBadge = `<div style="position:relative;display:inline-block">
+    <button class="pf-status" style="background:${sc};color:${sf};border:none;cursor:pointer;gap:4px" onclick="openStatusDrop(event)">${escapeHtml(detail.status||"—")}<span style="opacity:.7;font-size:9px">▾</span></button>
+    <div class="status-drop" id="statusDropMenu">${statusItems}</div>
+  </div>`;
 
   // Assignee chips
   let assigneeHtml = "—";

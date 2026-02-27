@@ -143,6 +143,21 @@ export default async (req: Request, context: Context) => {
         headers: { Authorization: CLICKUP_TOKEN }
       });
       const t = await res.json() as any;
+
+      // Fetch available statuses for this task's list so the frontend can show an inline status picker
+      let statuses: { status: string; color: string; type: string }[] = [];
+      if (t.list?.id) {
+        try {
+          const lr = await fetch(`${BASE}/list/${t.list.id}`, { headers: { Authorization: CLICKUP_TOKEN } });
+          const ld = await lr.json() as any;
+          statuses = (ld.statuses || []).map((s: any) => ({
+            status: s.status,
+            color:  s.color || "#6b7280",
+            type:   s.type,
+          }));
+        } catch {}
+      }
+
       return new Response(JSON.stringify({
         id:           t.id,
         name:         t.name,
@@ -155,7 +170,30 @@ export default async (req: Request, context: Context) => {
         assignees:    (t.assignees || []).map((a: any) => ({ id: a.id, name: a.username, avatar: a.profilePicture })),
         customFields: (t.custom_fields || []).filter((f: any) => f.value !== null && f.value !== undefined && f.value !== ""),
         listName:     t.list?.name || "",
+        statuses,
       }), { headers });
+    }
+
+    // ── POST update task ──
+    if (action === "update" && req.method === "POST") {
+      const body = await req.json() as any;
+      const { id: taskId, status, name, startDate, dueDate } = body;
+      if (!taskId) return new Response(JSON.stringify({ error: "Missing id" }), { status: 400, headers });
+      const payload: any = {};
+      if (status    !== undefined) payload.status    = status;
+      if (name      !== undefined) payload.name      = name;
+      if (startDate !== undefined) payload.start_date = startDate ? new Date(startDate).getTime() : null;
+      if (dueDate   !== undefined) payload.due_date   = dueDate   ? new Date(dueDate).getTime()   : null;
+      const res = await fetch(`${BASE}/task/${taskId}`, {
+        method: "PUT",
+        headers: { Authorization: CLICKUP_TOKEN, "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json() as any;
+        return new Response(JSON.stringify({ error: err.err || "Update failed" }), { status: res.status, headers });
+      }
+      return new Response(JSON.stringify({ ok: true }), { headers });
     }
 
     // ── POST create task ──
