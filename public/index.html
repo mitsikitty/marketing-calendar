@@ -104,13 +104,13 @@ body {
 
 .cal-grid {
   flex:1; display:grid; grid-template-columns:repeat(7,1fr);
-  grid-auto-rows:minmax(0,1fr); overflow-y:auto;
+  grid-auto-rows:auto; overflow-y:auto;
 }
 
 .cal-cell {
   background:var(--surface); border-right:1px solid var(--border);
   border-bottom:1px solid var(--border); padding:4px;
-  cursor:pointer; transition:background .1s; overflow:hidden;
+  cursor:pointer; transition:background .1s;
   display:flex; flex-direction:column; position:relative;
   min-height:90px;
 }
@@ -181,7 +181,10 @@ body {
 .event.paid      .event-title { color:var(--paid-text); }
 .event.holidays  { background:var(--holidays-bg);  border-left-color:var(--holidays); }
 .event.holidays  .event-title { color:var(--holidays-text); }
-.event.span-mid, .event.span-end { border-left:none; opacity:.65; }
+/* Multi-day span: continuous bar look */
+.event.span-start { border-radius:3px 0 0 3px; margin-right:-4px; padding-right:5px; }
+.event.span-mid   { border-radius:0; border-left:none; margin-left:-4px; margin-right:-4px; padding-left:5px; }
+.event.span-end   { border-radius:0 3px 3px 0; border-left:none; margin-left:-4px; padding-left:5px; }
 .event.span-mid .event-title, .event.span-end .event-title { visibility:hidden; font-size:1px; }
 .event.span-mid .event-pills, .event.span-end .event-pills { display:none; }
 .event[data-layer].hidden { display:none!important; }
@@ -313,6 +316,19 @@ body {
   text-align:left; text-transform:capitalize; transition:filter .1s;
 }
 .status-drop-item:hover { filter:brightness(1.1); }
+
+/* ── Hover tooltip ── */
+#calTooltip {
+  position:fixed; z-index:500; pointer-events:none;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:6px; padding:8px 10px;
+  box-shadow:0 4px 20px var(--shadow);
+  max-width:240px; min-width:120px; display:none;
+}
+#calTooltip.visible { display:block; }
+.tt-title { font-size:12px; font-weight:600; color:var(--text); margin-bottom:5px; line-height:1.35; word-break:break-word; }
+.tt-row { font-size:11px; color:var(--text-muted); margin-bottom:2px; line-height:1.4; }
+.tt-pills { display:flex; gap:3px; flex-wrap:wrap; margin-top:5px; }
 </style>
 </head>
 <body>
@@ -368,6 +384,9 @@ body {
     </div>
   </div>
 </div>
+
+<!-- Hover tooltip -->
+<div id="calTooltip"></div>
 
 <!-- Create task modal -->
 <div class="overlay" id="overlay">
@@ -468,16 +487,10 @@ function scrollToCurrentWeek() {
   const grid = document.getElementById("calGrid");
   const now = new Date();
   if(now.getFullYear() !== currentYear || now.getMonth() !== currentMonth) return;
-  const firstDay = new Date(currentYear, currentMonth, 1);
-  const startOffset = (firstDay.getDay() + 6) % 7;
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-  const rem = (7 - ((startOffset + daysInMonth) % 7)) % 7;
-  const numRows = (startOffset + daysInMonth + rem) / 7;
-  const todayRow = Math.floor((startOffset + now.getDate() - 1) / 7);
-  // Use requestAnimationFrame to ensure grid has rendered before measuring
+  // Use the actual offsetTop of today's cell (works with variable row heights)
   requestAnimationFrame(() => {
-    const rowH = grid.scrollHeight / numRows;
-    grid.scrollTop = todayRow * rowH;
+    const todayCell = grid.querySelector(".cal-cell.today");
+    if(todayCell) grid.scrollTop = todayCell.offsetTop;
   });
 }
 
@@ -524,6 +537,35 @@ function contrastColor(hex) {
   const r=parseInt(h.slice(0,2),16)||0, g=parseInt(h.slice(2,4),16)||0, b=parseInt(h.slice(4,6),16)||0;
   return (r*299 + g*587 + b*114) / 1000 > 140 ? "#111" : "#fff";
 }
+
+// ── Hover tooltip ──
+const _tt = document.getElementById("calTooltip");
+function _showTip(e, t) {
+  const typeName = t.type?.name || (typeof t.type === "string" ? t.type : "");
+  const locs = (t.locations||[]).map(l => l?.name||(typeof l==="string"?l:"")).filter(Boolean);
+  let h = `<div class="tt-title">${escapeHtml(t.title)}</div>`;
+  if(t.status) h += `<div class="tt-row">● ${escapeHtml(t.status)}</div>`;
+  if(t.start) {
+    const dateStr = t.end && t.end !== t.start ? `${fmtDisp(t.start)} → ${fmtDisp(t.end)}` : fmtDisp(t.start);
+    h += `<div class="tt-row">📅 ${dateStr}</div>`;
+  }
+  if(typeName || locs.length) {
+    h += `<div class="tt-pills">`;
+    if(typeName) h += `<span class="pill ${typePillClass(typeName)}">${escapeHtml(typeName)}</span>`;
+    locs.forEach(l => h += `<span class="pill ${locPillClass(l)}">${escapeHtml(l)}</span>`);
+    h += `</div>`;
+  }
+  if(t.campaign) h += `<div class="tt-row" style="margin-top:3px;font-style:italic">↩ ${escapeHtml(t.campaign)}</div>`;
+  _tt.innerHTML = h;
+  _tt.classList.add("visible");
+  _moveTip(e);
+}
+function _moveTip(e) {
+  const x = e.clientX + 14, y = e.clientY + 14;
+  _tt.style.left = (x + 250 > window.innerWidth ? e.clientX - 260 : x) + "px";
+  _tt.style.top  = (y + 160 > window.innerHeight ? e.clientY - 170 : y) + "px";
+}
+function _hideTip() { _tt.classList.remove("visible"); }
 
 function formatFieldValue(field) {
   const { type, value, type_config } = field;
@@ -596,14 +638,12 @@ function formatFieldValue(field) {
 let _panelDetail = null;
 let _panelUrl    = null;
 
-// Open task in browser — open a blank window first, then navigate it to the ClickUp URL.
-// This two-step approach bypasses the OS-level protocol handler that causes the
-// ClickUp desktop app to intercept direct URL navigations.
+// Navigate to the task within the current ClickUp webview window.
+// (The calendar runs inside ClickUp's desktop app, so window.open is intercepted —
+//  navigating the current window goes directly to the task within the app.)
 function openTaskUrl() {
   const url = _panelDetail?.url || _panelUrl;
-  if(!url) return;
-  const w = window.open("", "_blank");
-  if(w) { w.opener = null; w.location.href = url; }
+  if(url) window.location.href = url;
 }
 
 function openStatusDrop(e) {
@@ -689,6 +729,9 @@ function render() {
       if(!layerVis[t.layer]) evDiv.classList.add("hidden");
 
       evDiv.addEventListener("click", e => { e.stopPropagation(); openPanel(t); });
+      evDiv.addEventListener("mouseenter", e => _showTip(e, t));
+      evDiv.addEventListener("mousemove", _moveTip);
+      evDiv.addEventListener("mouseleave", _hideTip);
 
       if(!isSpan || isStart) {
         const titleDiv = document.createElement("div");
@@ -696,10 +739,11 @@ function render() {
         titleDiv.textContent = t.title;
         evDiv.appendChild(titleDiv);
 
+        // Only show pills on single-day events — keeps bar height uniform on multi-day spans
         const typeName = t.type?.name || (typeof t.type === "string" ? t.type : "");
         const skipTypes = new Set(["Campaign","Always On","Selling Season"]);
         const showType = typeName && !skipTypes.has(typeName);
-        if(showType || (t.locations && t.locations.length)) {
+        if(!isSpan && (showType || (t.locations && t.locations.length))) {
           const pillsDiv = document.createElement("div");
           pillsDiv.className = "event-pills";
           if(showType) {
@@ -751,6 +795,7 @@ function render() {
 
 // ── Slide panel ──
 async function openPanel(task) {
+  _hideTip();
   const panel = document.getElementById("taskPanel");
   const content = document.getElementById("panelContent");
   const titleEl = document.getElementById("panelTitle");
