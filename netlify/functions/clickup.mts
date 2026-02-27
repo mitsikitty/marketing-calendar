@@ -135,6 +135,29 @@ export default async (req: Request, context: Context) => {
       return new Response(JSON.stringify(results.flat()), { headers });
     }
 
+    // ── GET single task detail ──
+    if (action === "task") {
+      const taskId = url.searchParams.get("id");
+      if (!taskId) return new Response(JSON.stringify({ error: "Missing id" }), { status: 400, headers });
+      const res = await fetch(`${BASE}/task/${taskId}`, {
+        headers: { Authorization: CLICKUP_TOKEN }
+      });
+      const t = await res.json() as any;
+      return new Response(JSON.stringify({
+        id:           t.id,
+        name:         t.name,
+        description:  t.description || "",
+        status:       t.status?.status || "",
+        statusColor:  t.status?.color || "#6b7280",
+        url:          t.url,
+        startDate:    t.start_date ? new Date(Number(t.start_date)).toISOString().split("T")[0] : null,
+        dueDate:      t.due_date   ? new Date(Number(t.due_date)).toISOString().split("T")[0]   : null,
+        assignees:    (t.assignees || []).map((a: any) => ({ id: a.id, name: a.username, avatar: a.profilePicture })),
+        customFields: (t.custom_fields || []).filter((f: any) => f.value !== null && f.value !== undefined && f.value !== ""),
+        listName:     t.list?.name || "",
+      }), { headers });
+    }
+
     // ── POST create task ──
     if (action === "create" && req.method === "POST") {
       const body = await req.json() as any;

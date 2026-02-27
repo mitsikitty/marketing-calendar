@@ -195,11 +195,10 @@ body {
 .panel-close { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:18px; padding:2px 6px; border-radius:4px; line-height:1; }
 .panel-close:hover { background:var(--surface2); }
 
-.panel-iframe-wrap { flex:1; overflow:hidden; }
-.panel-iframe-wrap iframe {
-  width:100%; height:100%; border:none;
-  background:var(--surface);
-}
+/* panel-iframe-wrap is now a flex column so panel-body can scroll inside it */
+.panel-iframe-wrap { flex:1; overflow:hidden; display:flex; flex-direction:column; }
+.panel-body { flex:1; overflow-y:auto; padding:16px; }
+.panel-footer { padding:12px 14px; border-top:1px solid var(--border); flex-shrink:0; }
 
 .panel-loading {
   display:flex; align-items:center; justify-content:center;
@@ -211,6 +210,42 @@ body {
   animation:spin .7s linear infinite;
 }
 @keyframes spin { to{transform:rotate(360deg)} }
+
+/* ── Task detail field rows ── */
+.pf-row { display:flex; flex-direction:column; margin-bottom:12px; }
+.pf-label {
+  font-size:10px; font-weight:600; color:var(--text-muted);
+  text-transform:uppercase; letter-spacing:.05em; margin-bottom:3px;
+}
+.pf-val { font-size:13px; color:var(--text); line-height:1.5; }
+.pf-val a { color:#7c3aed; text-decoration:none; }
+.pf-val a:hover { text-decoration:underline; }
+.pf-desc {
+  font-size:12px; line-height:1.6; color:var(--text);
+  background:var(--surface2); border-radius:4px;
+  padding:10px; border:1px solid var(--border);
+  white-space:pre-wrap; word-break:break-word;
+}
+.pf-status {
+  display:inline-flex; align-items:center;
+  padding:3px 10px; border-radius:20px;
+  font-size:11px; font-weight:600; text-transform:capitalize;
+}
+.pf-divider { border:none; border-top:1px solid var(--border); margin:14px 0; }
+
+/* ── Assignee chips ── */
+.assignee-chip {
+  display:inline-flex; align-items:center; gap:5px;
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:20px; padding:2px 8px 2px 2px;
+  margin:2px 2px 2px 0; font-size:11px; font-weight:500; color:var(--text);
+}
+.assignee-avatar { width:20px; height:20px; border-radius:50%; object-fit:cover; }
+.assignee-initials {
+  width:20px; height:20px; border-radius:50%;
+  background:#7c3aed; color:#fff; font-size:9px; font-weight:700;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
 
 /* ── Create task modal ── */
 .overlay {
@@ -282,7 +317,7 @@ body {
     <div class="panel-header">
       <span class="panel-title" id="panelTitle">Task</span>
       <div class="panel-actions">
-        <a class="btn btn-icon" id="panelOpenLink" href="#" target="_blank" title="Open in new tab" style="text-decoration:none;font-size:11px">↗ Open</a>
+        <a class="btn btn-icon" id="panelOpenLink" href="#" target="_blank" title="Open in ClickUp" style="text-decoration:none;font-size:11px">↗ Open</a>
         <button class="panel-close" onclick="closePanel()">×</button>
       </div>
     </div>
@@ -313,7 +348,7 @@ body {
         <option value="campaigns">Campaigns</option>
         <option value="alwayson">Always On</option>
         <option value="paid">Paid Ads</option>
-        <option value="holidays">Holidays & Events</option>
+        <option value="holidays">Holidays &amp; Events</option>
       </select>
     </div>
     <div class="field-row">
@@ -382,6 +417,86 @@ function parseDate(s) { if(!s) return null; const [y,m,d]=s.split("-").map(Numbe
 function isSameDay(a,b) { return a&&b&&a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate(); }
 function fmtDate(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 
+// ── Task detail helpers ──
+function escapeHtml(s) {
+  return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function fmtDisp(iso) {
+  if(!iso) return "—";
+  const [y,mo,d] = iso.split("-").map(Number);
+  return new Date(y, mo-1, d).toLocaleDateString("en-AU",{day:"numeric",month:"short",year:"numeric"});
+}
+
+function contrastColor(hex) {
+  if(!hex || !hex.startsWith("#")) return "#1f2937";
+  const h = hex.replace("#","");
+  const r=parseInt(h.slice(0,2),16), g=parseInt(h.slice(2,4),16), b=parseInt(h.slice(4,6),16);
+  return (r*299 + g*587 + b*114) / 1000 > 140 ? "#111" : "#fff";
+}
+
+function formatFieldValue(field) {
+  const { type, value, type_config } = field;
+  if(value === null || value === undefined || value === "") return null;
+  switch(type) {
+    case "drop_down": {
+      const opts = type_config?.options || [];
+      const opt = opts.find(o => o.orderindex === value || o.id === value);
+      if(!opt) return escapeHtml(value);
+      const color = (opt.color && opt.color !== "none" && /^#[0-9a-fA-F]{3,8}$/.test(opt.color)) ? opt.color : "#e5e7eb";
+      const fg = contrastColor(color);
+      return `<span style="display:inline-block;background:${color};color:${fg};border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600">${escapeHtml(opt.name)}</span>`;
+    }
+    case "labels": {
+      const vals = Array.isArray(value) ? value : [value];
+      const opts = type_config?.options || [];
+      return vals.map(v => {
+        const id = typeof v === "string" ? v : v?.id;
+        const opt = opts.find(o => o.id === id);
+        const label = opt?.label || opt?.name || String(id);
+        const color = (opt?.color && opt.color !== "none" && /^#[0-9a-fA-F]{3,8}$/.test(opt.color)) ? opt.color : "#e5e7eb";
+        const fg = contrastColor(color);
+        return `<span style="display:inline-block;background:${color};color:${fg};border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;margin:1px">${escapeHtml(label)}</span>`;
+      }).join(" ");
+    }
+    case "date": {
+      if(!value) return null;
+      const iso = new Date(Number(value)).toISOString().split("T")[0];
+      return fmtDisp(iso);
+    }
+    case "checkbox":
+      return value ? "✓ Yes" : "✗ No";
+    case "url":
+      return `<a href="${escapeHtml(value)}" target="_blank" rel="noopener">${escapeHtml(value)}</a>`;
+    case "email":
+      return `<a href="mailto:${escapeHtml(value)}">${escapeHtml(value)}</a>`;
+    case "phone":
+      return `<a href="tel:${escapeHtml(value)}">${escapeHtml(value)}</a>`;
+    case "number":
+    case "currency":
+    case "emoji":
+    case "rating":
+      return escapeHtml(String(value));
+    case "short_text":
+    case "text":
+      return `<span style="white-space:pre-wrap">${escapeHtml(value)}</span>`;
+    case "users": {
+      const arr = Array.isArray(value) ? value : [value];
+      return arr.map(u => {
+        const name = u.username || u.name || u.email || "?";
+        const initials = name.split(" ").map(p => p[0]||"").join("").slice(0,2).toUpperCase();
+        const avatar = u.profilePicture || u.profile_picture || u.avatar || "";
+        const avatarHtml = avatar
+          ? `<img class="assignee-avatar" src="${escapeHtml(avatar)}" alt="">`
+          : `<span class="assignee-initials">${escapeHtml(initials)}</span>`;
+        return `<span class="assignee-chip">${avatarHtml}${escapeHtml(name)}</span>`;
+      }).join(" ");
+    }
+    default:
+      return null;
+  }
+}
+
 // ── Render ──
 function render() {
   const months=["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -409,12 +524,10 @@ function render() {
     numDiv.textContent = cell.date.getDate();
     div.appendChild(numDiv);
 
-    // Click blank cell → create task
     div.addEventListener("click", e => {
       if(e.target===div||e.target===numDiv) openModal(cell.date);
     });
 
-    // Tasks for this cell
     const dayTasks = tasks.filter(t => {
       const s = parseDate(t.start), e = parseDate(t.end) || parseDate(t.start);
       if(!s&&!e) return false;
@@ -434,7 +547,6 @@ function render() {
       evDiv.setAttribute("data-layer", t.layer);
       if(!layerVis[t.layer]) evDiv.classList.add("hidden");
 
-      // Click task → open slide panel
       evDiv.addEventListener("click", e => { e.stopPropagation(); openPanel(t); });
 
       if(!isSpan || isStart) {
@@ -443,7 +555,6 @@ function render() {
         titleDiv.textContent = t.title;
         evDiv.appendChild(titleDiv);
 
-        // Pills: content type + publish locations
         const showType = t.type && !["Campaign","Always On","Selling Season"].includes(t.type);
         if(showType || (t.locations && t.locations.length)) {
           const pillsDiv = document.createElement("div");
@@ -474,7 +585,7 @@ function render() {
 }
 
 // ── Slide panel ──
-function openPanel(task) {
+async function openPanel(task) {
   const panel = document.getElementById("taskPanel");
   const content = document.getElementById("panelContent");
   const titleEl = document.getElementById("panelTitle");
@@ -482,48 +593,126 @@ function openPanel(task) {
 
   titleEl.textContent = task.title;
   linkBtn.href = task.url || "#";
-
-  // Show spinner then load iframe
   content.innerHTML = `<div class="panel-loading"><div class="panel-spinner"></div><span>Loading…</span></div>`;
-
-  // ClickUp blocks iframe embedding (X-Frame-Options: DENY) and crashes when framed.
-  // Always show the detail card; the "↗ Open" button links directly to ClickUp.
-  showPanelFallback(task);
-
   panel.classList.add("open");
+
+  try {
+    const res = await fetch(`${API}?action=task&id=${task.id}`);
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const detail = await res.json();
+    renderTaskDetail(detail);
+  } catch(e) {
+    console.warn("Task detail fetch failed, showing summary:", e);
+    renderTaskBasic(task);
+  }
 }
 
-function showPanelFallback(task) {
-  // ClickUp may block iframe embedding — show a clean detail card instead
+function renderTaskDetail(detail) {
   const content = document.getElementById("panelContent");
-  const pub = task.publishDate ? new Date(task.publishDate).toLocaleDateString("en-AU",{day:"numeric",month:"short",year:"numeric"}) : "—";
-  const start = task.start ? new Date(task.start).toLocaleDateString("en-AU",{day:"numeric",month:"short"}) : "—";
-  const end = task.end ? new Date(task.end).toLocaleDateString("en-AU",{day:"numeric",month:"short"}) : "—";
+  document.getElementById("panelTitle").textContent = detail.name || "Task";
+  if(detail.url) document.getElementById("panelOpenLink").href = detail.url;
+
+  // Status badge with ClickUp colour
+  const sc = detail.statusColor || "#6b7280";
+  const sf = contrastColor(sc);
+  const statusBadge = `<span class="pf-status" style="background:${sc};color:${sf}">${escapeHtml(detail.status||"—")}</span>`;
+
+  // Assignee chips
+  let assigneeHtml = "—";
+  if(detail.assignees && detail.assignees.length) {
+    assigneeHtml = detail.assignees.map(a => {
+      const name = a.name || "?";
+      const initials = name.split(" ").map(p => p[0]||"").join("").slice(0,2).toUpperCase();
+      const avatarHtml = a.avatar
+        ? `<img class="assignee-avatar" src="${escapeHtml(a.avatar)}" alt="">`
+        : `<span class="assignee-initials">${escapeHtml(initials)}</span>`;
+      return `<span class="assignee-chip">${avatarHtml}${escapeHtml(name)}</span>`;
+    }).join("");
+  }
+
+  // Description
+  let descHtml = "";
+  if(detail.description && detail.description.trim()) {
+    descHtml = `<div class="pf-row"><div class="pf-label">Description</div><div class="pf-desc">${escapeHtml(detail.description)}</div></div>`;
+  }
+
+  // Custom fields — skip structural types and date fields shown in fixed rows
+  const SKIP_TYPES = new Set(["list_relationship","tasks_rollup","formula","auto_progress","rollup"]);
+  const SKIP_NAMES = new Set(["Publish Date","End date"]);
+  let fieldsHtml = "";
+  (detail.customFields || []).forEach(f => {
+    if(SKIP_TYPES.has(f.type) || SKIP_NAMES.has(f.name)) return;
+    const rendered = formatFieldValue(f);
+    if(!rendered) return;
+    fieldsHtml += `<div class="pf-row"><div class="pf-label">${escapeHtml(f.name)}</div><div class="pf-val">${rendered}</div></div>`;
+  });
+
+  // Publish date from custom fields
+  const pubField = (detail.customFields||[]).find(f => f.name === "Publish Date");
+  const pubIso = pubField?.value ? new Date(Number(pubField.value)).toISOString().split("T")[0] : null;
 
   content.innerHTML = `
-    <div style="padding:16px;overflow-y:auto;height:100%">
-      <div style="margin-bottom:14px">
-        <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Status</div>
-        <div style="display:inline-block;padding:2px 8px;border-radius:4px;background:var(--surface2);font-size:12px;font-weight:500;text-transform:capitalize">${task.status||"—"}</div>
+    <div class="panel-body">
+      <div class="pf-row" style="margin-bottom:14px;flex-direction:row;align-items:center;gap:8px;flex-wrap:wrap">
+        ${statusBadge}
+        <span style="font-size:11px;color:var(--text-muted)">${escapeHtml(detail.listName||"")}</span>
       </div>
-      <div style="margin-bottom:14px">
-        <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">List</div>
-        <div style="font-size:13px">${task.layer}</div>
+      ${descHtml}
+      <div class="pf-row">
+        <div class="pf-label">Assignees</div>
+        <div class="pf-val">${assigneeHtml}</div>
       </div>
-      ${task.type?`<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Content Type</div><div style="font-size:13px">${task.type}</div></div>`:""}
-      ${task.locations&&task.locations.length?`<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Publish Locations</div><div style="display:flex;gap:4px;flex-wrap:wrap">${task.locations.map(l=>`<span class="pill ${locPillClass(l)}">${l}</span>`).join("")}</div></div>`:""}
-      <div style="margin-bottom:14px">
-        <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Publish Date</div>
-        <div style="font-size:13px">${pub}</div>
+      <div class="pf-row">
+        <div class="pf-label">Publish Date</div>
+        <div class="pf-val">${fmtDisp(pubIso)}</div>
       </div>
-      <div style="margin-bottom:14px">
-        <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Campaign Dates</div>
-        <div style="font-size:13px">${start} → ${end}</div>
+      <div class="pf-row">
+        <div class="pf-label">Campaign Dates</div>
+        <div class="pf-val">${fmtDisp(detail.startDate)} → ${fmtDisp(detail.dueDate)}</div>
       </div>
-      ${task.assignees&&task.assignees.length?`<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Assignees</div><div style="font-size:13px">${task.assignees.map(a=>a.name).join(", ")}</div></div>`:""}
-      <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--border)">
-        <a href="${task.url}" target="_blank" class="btn btn-primary" style="display:inline-block;text-decoration:none;font-size:12px">↗ Open in ClickUp</a>
+      ${fieldsHtml ? `<hr class="pf-divider">${fieldsHtml}` : ""}
+    </div>
+    <div class="panel-footer">
+      <a href="${escapeHtml(detail.url||"#")}" target="_blank" rel="noopener"
+         class="btn btn-primary" style="text-decoration:none;font-size:12px;display:inline-block">
+        ↗ Open in ClickUp
+      </a>
+    </div>`;
+}
+
+function renderTaskBasic(task) {
+  const content = document.getElementById("panelContent");
+  content.innerHTML = `
+    <div class="panel-body">
+      <div class="pf-row">
+        <div class="pf-label">Status</div>
+        <div class="pf-val"><span class="pf-status" style="background:var(--surface2);color:var(--text)">${escapeHtml(task.status||"—")}</span></div>
       </div>
+      <div class="pf-row">
+        <div class="pf-label">List</div>
+        <div class="pf-val">${escapeHtml(task.layer)}</div>
+      </div>
+      ${task.type ? `<div class="pf-row"><div class="pf-label">Content Type</div><div class="pf-val">${escapeHtml(task.type)}</div></div>` : ""}
+      ${task.locations && task.locations.length ? `<div class="pf-row"><div class="pf-label">Publish Locations</div><div class="pf-val">${task.locations.map(l=>`<span class="pill ${locPillClass(l)}">${escapeHtml(l)}</span>`).join(" ")}</div></div>` : ""}
+      <div class="pf-row">
+        <div class="pf-label">Publish Date</div>
+        <div class="pf-val">${fmtDisp(task.publishDate)}</div>
+      </div>
+      <div class="pf-row">
+        <div class="pf-label">Campaign Dates</div>
+        <div class="pf-val">${fmtDisp(task.start)} → ${fmtDisp(task.end)}</div>
+      </div>
+      ${task.assignees && task.assignees.length ? `<div class="pf-row"><div class="pf-label">Assignees</div><div class="pf-val">${task.assignees.map(a => {
+        const name = a.name || "?";
+        const initials = name.split(" ").map(p=>p[0]||"").join("").slice(0,2).toUpperCase();
+        return `<span class="assignee-chip"><span class="assignee-initials">${escapeHtml(initials)}</span>${escapeHtml(name)}</span>`;
+      }).join("")}</div></div>` : ""}
+    </div>
+    <div class="panel-footer">
+      <a href="${escapeHtml(task.url||"#")}" target="_blank" rel="noopener"
+         class="btn btn-primary" style="text-decoration:none;font-size:12px;display:inline-block">
+        ↗ Open in ClickUp
+      </a>
     </div>`;
 }
 
@@ -567,7 +756,6 @@ async function createTask() {
     const data = await res.json();
     closeModal();
     await loadTasks();
-    // Open new task in panel
     if(data.url) {
       const newTask = tasks.find(t => t.id === data.id) || { id:data.id, title, url:data.url, layer:document.getElementById("f-layer").value };
       openPanel(newTask);
