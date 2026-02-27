@@ -111,11 +111,21 @@ body {
   background:var(--surface); border-right:1px solid var(--border);
   border-bottom:1px solid var(--border); padding:4px;
   cursor:pointer; transition:background .1s; overflow:hidden;
-  display:flex; flex-direction:column;
+  display:flex; flex-direction:column; position:relative;
   min-height:90px;
 }
 .cal-cell:nth-child(7n) { border-right:none; }
 .cal-cell:hover { background:var(--surface2); }
+.day-add-btn {
+  position:absolute; bottom:4px; right:4px;
+  width:20px; height:20px; border-radius:50%;
+  background:none; border:1.5px solid var(--border);
+  color:var(--text-muted); font-size:16px; line-height:1;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  opacity:0; transition:opacity .12s, background .12s; padding:0; font-family:inherit;
+}
+.cal-cell:hover .day-add-btn { opacity:1; }
+.day-add-btn:hover { background:var(--surface2); color:var(--text); border-color:var(--text-muted); }
 .cal-cell.other-month { background:var(--bg); }
 .cal-cell.other-month .day-num { color:var(--text-light); }
 .day-num {
@@ -579,6 +589,13 @@ function render() {
     numDiv.textContent = cell.date.getDate();
     div.appendChild(numDiv);
 
+    const addBtn = document.createElement("button");
+    addBtn.className = "day-add-btn";
+    addBtn.textContent = "+";
+    addBtn.title = "New task";
+    addBtn.addEventListener("click", e => { e.stopPropagation(); openModal(cell.date); });
+    div.appendChild(addBtn);
+
     div.addEventListener("click", e => {
       if(e.target===div||e.target===numDiv) openModal(cell.date);
     });
@@ -610,20 +627,38 @@ function render() {
         titleDiv.textContent = t.title;
         evDiv.appendChild(titleDiv);
 
-        const showType = t.type && !["Campaign","Always On","Selling Season"].includes(t.type);
+        const typeName = t.type?.name || (typeof t.type === "string" ? t.type : "");
+        const skipTypes = new Set(["Campaign","Always On","Selling Season"]);
+        const showType = typeName && !skipTypes.has(typeName);
         if(showType || (t.locations && t.locations.length)) {
           const pillsDiv = document.createElement("div");
           pillsDiv.className = "event-pills";
           if(showType) {
             const p = document.createElement("span");
-            p.className = `pill ${typePillClass(t.type)}`;
-            p.textContent = t.type;
+            const typeColor = t.type?.color;
+            if(typeColor) {
+              p.className = "pill";
+              p.style.background = typeColor;
+              p.style.color = contrastColor(typeColor);
+            } else {
+              p.className = `pill ${typePillClass(typeName)}`;
+            }
+            p.textContent = typeName;
             pillsDiv.appendChild(p);
           }
-          (t.locations||[]).forEach(l => {
+          (t.locations||[]).forEach(loc => {
+            const locName = loc?.name || (typeof loc === "string" ? loc : "");
+            if(!locName) return;
+            const locColor = loc?.color;
             const p = document.createElement("span");
-            p.className = `pill ${locPillClass(l)}`;
-            p.textContent = l;
+            if(locColor) {
+              p.className = "pill";
+              p.style.background = locColor;
+              p.style.color = contrastColor(locColor);
+            } else {
+              p.className = `pill ${locPillClass(locName)}`;
+            }
+            p.textContent = locName;
             pillsDiv.appendChild(p);
           });
           if(pillsDiv.children.length) evDiv.appendChild(pillsDiv);
@@ -735,12 +770,6 @@ function renderTaskDetail(detail) {
         <div class="pf-val">${fmtDisp(detail.startDate)} → ${fmtDisp(detail.dueDate)}</div>
       </div>
       ${fieldsHtml ? `<hr class="pf-divider">${fieldsHtml}` : ""}
-    </div>
-    <div class="panel-footer">
-      <a href="${escapeHtml(detail.url||"#")}" target="_blank" rel="noopener"
-         class="btn btn-primary" style="text-decoration:none;font-size:12px;display:inline-block">
-        ↗ Open in ClickUp
-      </a>
     </div>`;
 }
 
@@ -756,8 +785,8 @@ function renderTaskBasic(task) {
         <div class="pf-label">List</div>
         <div class="pf-val">${escapeHtml(task.layer)}</div>
       </div>
-      ${task.type ? `<div class="pf-row"><div class="pf-label">Content Type</div><div class="pf-val">${escapeHtml(task.type)}</div></div>` : ""}
-      ${task.locations && task.locations.length ? `<div class="pf-row"><div class="pf-label">Publish Locations</div><div class="pf-val">${task.locations.map(l=>`<span class="pill ${locPillClass(l)}">${escapeHtml(l)}</span>`).join(" ")}</div></div>` : ""}
+      ${task.type ? `<div class="pf-row"><div class="pf-label">Content Type</div><div class="pf-val">${escapeHtml(task.type?.name||task.type)}</div></div>` : ""}
+      ${task.locations && task.locations.length ? `<div class="pf-row"><div class="pf-label">Publish Locations</div><div class="pf-val">${task.locations.map(loc=>{const n=loc?.name||(typeof loc==="string"?loc:"");const c=loc?.color;return c?`<span class="pill" style="background:${c};color:${contrastColor(c)}">${escapeHtml(n)}</span>`:`<span class="pill ${locPillClass(n)}">${escapeHtml(n)}</span>`;}).join(" ")}</div></div>` : ""}
       <div class="pf-row">
         <div class="pf-label">Publish Date</div>
         <div class="pf-val">${fmtDisp(task.publishDate)}</div>
@@ -771,12 +800,6 @@ function renderTaskBasic(task) {
         const initials = name.split(" ").map(p=>p[0]||"").join("").slice(0,2).toUpperCase();
         return `<span class="assignee-chip"><span class="assignee-initials">${escapeHtml(initials)}</span>${escapeHtml(name)}</span>`;
       }).join("")}</div></div>` : ""}
-    </div>
-    <div class="panel-footer">
-      <a href="${escapeHtml(task.url||"#")}" target="_blank" rel="noopener"
-         class="btn btn-primary" style="text-decoration:none;font-size:12px;display:inline-block">
-        ↗ Open in ClickUp
-      </a>
     </div>`;
 }
 

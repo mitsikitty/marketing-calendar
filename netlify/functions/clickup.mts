@@ -49,23 +49,34 @@ const PUBLISH_LOCATION_MAP: Record<string, string> = {
 // ── Hemisphere dropdown ──
 const HEMISPHERE_MAP: Record<number, string> = { 0: "Both", 1: "Southern", 2: "Northern" };
 
-function resolveContentType(field: any): string {
-  if (!field || field.value === null || field.value === undefined) return "";
-  // dropdown returns a number (orderindex)
-  if (typeof field.value === "number") return CONTENT_TYPE_BY_INDEX[field.value] || String(field.value);
-  // sometimes returns UUID string
-  if (typeof field.value === "string") return CONTENT_TYPE_MAP[field.value] || field.value;
-  return "";
+function resolveContentType(field: any): { name: string; color: string | null } | null {
+  if (!field || field.value === null || field.value === undefined) return null;
+  const opts: any[] = field.type_config?.options || [];
+  let name = "";
+  let color: string | null = null;
+  if (typeof field.value === "number") {
+    const opt = opts.find((o: any) => o.orderindex === field.value);
+    name  = opt?.name || CONTENT_TYPE_BY_INDEX[field.value] || String(field.value);
+    color = (opt?.color && opt.color !== "none") ? opt.color : null;
+  } else if (typeof field.value === "string") {
+    const opt = opts.find((o: any) => o.id === field.value);
+    name  = opt?.name || CONTENT_TYPE_MAP[field.value] || field.value;
+    color = (opt?.color && opt.color !== "none") ? opt.color : null;
+  }
+  return name ? { name, color } : null;
 }
 
-function resolveLocations(field: any): string[] {
+function resolveLocations(field: any): { name: string; color: string | null }[] {
   if (!field || !field.value) return [];
   const vals = Array.isArray(field.value) ? field.value : [field.value];
+  const opts: any[] = field.type_config?.options || [];
   return vals.map((v: any) => {
-    if (typeof v === "string") return PUBLISH_LOCATION_MAP[v] || v;
-    if (typeof v === "object" && v?.id) return PUBLISH_LOCATION_MAP[v.id] || v.label || v.name || v.id;
-    return String(v);
-  }).filter(Boolean);
+    const id = typeof v === "string" ? v : (v?.id || "");
+    const opt = opts.find((o: any) => o.id === id);
+    const name  = opt?.label || opt?.name || PUBLISH_LOCATION_MAP[id] || String(id);
+    const color = (opt?.color && opt.color !== "none") ? opt.color : null;
+    return { name, color };
+  }).filter((x: any) => x.name);
 }
 
 function resolvePublishDate(fields: any[]): string | null {
