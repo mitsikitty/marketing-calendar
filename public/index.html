@@ -486,21 +486,9 @@ function openPanel(task) {
   // Show spinner then load iframe
   content.innerHTML = `<div class="panel-loading"><div class="panel-spinner"></div><span>Loading…</span></div>`;
 
-  if(task.url) {
-    // Small delay so panel animates in first
-    setTimeout(() => {
-      const iframe = document.createElement("iframe");
-      iframe.src = task.url;
-      iframe.style.cssText = "width:100%;height:100%;border:none;";
-      iframe.setAttribute("allow", "clipboard-read; clipboard-write");
-      // If ClickUp blocks iframe (X-Frame-Options), show fallback
-      iframe.addEventListener("error", () => showPanelFallback(task));
-      content.innerHTML = "";
-      content.appendChild(iframe);
-    }, 200);
-  } else {
-    showPanelFallback(task);
-  }
+  // ClickUp blocks iframe embedding (X-Frame-Options: DENY) and crashes when framed.
+  // Always show the detail card; the "↗ Open" button links directly to ClickUp.
+  showPanelFallback(task);
 
   panel.classList.add("open");
 }
