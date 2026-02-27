@@ -8,170 +8,237 @@
 * { margin:0; padding:0; box-sizing:border-box; }
 
 :root {
-  --bg:#f8f9fb; --surface:#fff; --surface2:#f1f3f7; --border:#e2e5ea;
-  --text:#1a1d23; --text-muted:#6b7280; --shadow:rgba(0,0,0,0.06);
-  --campaigns:#7c3aed; --campaigns-bg:rgba(124,58,237,0.1); --campaigns-text:#5b21b6;
-  --content:#0ea5e9;   --content-bg:rgba(14,165,233,0.1);   --content-text:#0369a1;
-  --alwayson:#10b981;  --alwayson-bg:rgba(16,185,129,0.1);  --alwayson-text:#065f46;
-  --paid:#f59e0b;      --paid-bg:rgba(245,158,11,0.1);      --paid-text:#92400e;
-  --holidays:#ec4899;  --holidays-bg:rgba(236,72,153,0.1);  --holidays-text:#9d174d;
+  --bg:#f3f4f6; --surface:#fff; --surface2:#f8f9fb; --border:#e5e7eb;
+  --text:#1f2937; --text-muted:#6b7280; --text-light:#9ca3af;
+  --shadow:rgba(0,0,0,0.07); --radius:4px; --topbar-h:48px;
+  --campaigns:#7c3aed; --campaigns-bg:#ede9fe; --campaigns-text:#5b21b6;
+  --content:#0891b2;   --content-bg:#e0f2fe;   --content-text:#0369a1;
+  --alwayson:#059669;  --alwayson-bg:#d1fae5;  --alwayson-text:#065f46;
+  --paid:#d97706;      --paid-bg:#fef3c7;      --paid-text:#92400e;
+  --holidays:#db2777;  --holidays-bg:#fce7f3;  --holidays-text:#9d174d;
 }
-
 [data-dark] {
-  --bg:#131720; --surface:#1c2333; --surface2:#242d40;
-  --border:rgba(255,255,255,0.08); --text:#e2e8f0; --text-muted:#94a3b8; --shadow:rgba(0,0,0,0.35);
-  --campaigns-text:#c4b5fd; --content-text:#7dd3fc; --alwayson-text:#6ee7b7;
-  --paid-text:#fcd34d; --holidays-text:#f9a8d4;
-  --campaigns-bg:rgba(124,58,237,0.18); --content-bg:rgba(14,165,233,0.18);
-  --alwayson-bg:rgba(16,185,129,0.18); --paid-bg:rgba(245,158,11,0.18); --holidays-bg:rgba(236,72,153,0.18);
+  --bg:#1a1d27; --surface:#22263a; --surface2:#2a2f45;
+  --border:rgba(255,255,255,0.09); --text:#e5e7eb; --text-muted:#9ca3af; --text-light:#4b5563;
+  --shadow:rgba(0,0,0,0.35);
+  --campaigns-bg:rgba(124,58,237,0.2); --campaigns-text:#c4b5fd;
+  --content-bg:rgba(8,145,178,0.2);    --content-text:#67e8f9;
+  --alwayson-bg:rgba(5,150,105,0.2);   --alwayson-text:#6ee7b7;
+  --paid-bg:rgba(217,119,6,0.2);       --paid-text:#fcd34d;
+  --holidays-bg:rgba(219,39,119,0.2);  --holidays-text:#f9a8d4;
 }
 
-body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:var(--bg); color:var(--text); font-size:13px; }
+html, body { height:100%; overflow:hidden; }
+
+body {
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:var(--bg); color:var(--text); font-size:13px;
+  display:flex; flex-direction:column;
+}
 
 /* ── Topbar ── */
 .topbar {
+  height:var(--topbar-h); min-height:var(--topbar-h);
   background:var(--surface); border-bottom:1px solid var(--border);
-  padding:9px 14px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;
-  position:sticky; top:0; z-index:20; box-shadow:0 1px 4px var(--shadow);
+  padding:0 14px; display:flex; align-items:center; gap:10px;
+  flex-wrap:nowrap; overflow-x:auto; flex-shrink:0;
+  box-shadow:0 1px 3px var(--shadow); z-index:20;
 }
-.topbar-left { display:flex; align-items:center; gap:6px; flex:1; min-width:200px; }
+.topbar-left { display:flex; align-items:center; gap:6px; flex-shrink:0; }
 .btn {
   background:none; border:1px solid var(--border); color:var(--text-muted);
-  cursor:pointer; padding:4px 9px; border-radius:5px; font-size:12px;
-  transition:all .12s; line-height:1.4; white-space:nowrap;
+  cursor:pointer; padding:4px 9px; border-radius:var(--radius);
+  font-size:12px; font-family:inherit; transition:all .12s; white-space:nowrap; line-height:1.5;
 }
 .btn:hover { background:var(--surface2); color:var(--text); }
-.btn-primary { background:var(--campaigns); color:#fff; border-color:transparent; font-weight:500; }
-.btn-primary:hover { opacity:.9; color:#fff; }
-.month-label { font-size:14px; font-weight:600; color:var(--text); min-width:130px; padding-left:2px; }
-
-/* ── Layer toggles ── */
-.layers { display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
-.layer-label { font-size:10.5px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.06em; font-weight:500; }
+.btn-icon { padding:4px 8px; font-size:13px; }
+.btn-primary { background:#7c3aed; color:#fff; border-color:transparent; font-weight:500; }
+.btn-primary:hover { background:#6d28d9; color:#fff; }
+.month-label { font-size:15px; font-weight:600; color:var(--text); padding:0 4px; white-space:nowrap; }
+.status-dot { width:7px; height:7px; border-radius:50%; background:#10b981; flex-shrink:0; cursor:default; }
+.status-dot.loading { background:#f59e0b; animation:blink .7s infinite; }
+.status-dot.error   { background:#ef4444; }
+@keyframes blink { 0%,100%{opacity:1}50%{opacity:.25} }
+.topbar-sep { width:1px; height:18px; background:var(--border); flex-shrink:0; }
+.layers { display:flex; align-items:center; gap:5px; flex-shrink:0; }
+.layers-label { font-size:10px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:.06em; white-space:nowrap; }
 .layer-toggle {
-  display:flex; align-items:center; gap:5px; padding:3px 9px;
+  display:flex; align-items:center; gap:4px; padding:3px 8px;
   border-radius:20px; border:1.5px solid transparent; cursor:pointer;
-  font-size:11px; font-weight:500; transition:all .15s; user-select:none;
+  font-size:11px; font-weight:500; font-family:inherit; transition:all .12s; user-select:none; white-space:nowrap;
 }
 .layer-toggle .dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
-.layer-toggle[data-layer="campaigns"] { border-color:var(--campaigns); color:var(--campaigns-text); background:var(--campaigns-bg); }
+.layer-toggle[data-layer="campaigns"]{ background:var(--campaigns-bg); color:var(--campaigns-text); border-color:var(--campaigns); }
 .layer-toggle[data-layer="campaigns"] .dot { background:var(--campaigns); }
-.layer-toggle[data-layer="content"]   { border-color:var(--content);   color:var(--content-text);   background:var(--content-bg); }
-.layer-toggle[data-layer="content"]   .dot { background:var(--content); }
-.layer-toggle[data-layer="alwayson"]  { border-color:var(--alwayson);  color:var(--alwayson-text);  background:var(--alwayson-bg); }
-.layer-toggle[data-layer="alwayson"]  .dot { background:var(--alwayson); }
-.layer-toggle[data-layer="paid"]      { border-color:var(--paid);      color:var(--paid-text);      background:var(--paid-bg); }
-.layer-toggle[data-layer="paid"]      .dot { background:var(--paid); }
-.layer-toggle[data-layer="holidays"]  { border-color:var(--holidays);  color:var(--holidays-text);  background:var(--holidays-bg); }
-.layer-toggle[data-layer="holidays"]  .dot { background:var(--holidays); }
-.layer-toggle.off { border-color:var(--border)!important; color:var(--text-muted)!important; background:transparent!important; }
-.layer-toggle.off .dot { background:var(--text-muted)!important; }
+.layer-toggle[data-layer="content"]  { background:var(--content-bg);   color:var(--content-text);   border-color:var(--content); }
+.layer-toggle[data-layer="content"]  .dot { background:var(--content); }
+.layer-toggle[data-layer="alwayson"] { background:var(--alwayson-bg);  color:var(--alwayson-text);  border-color:var(--alwayson); }
+.layer-toggle[data-layer="alwayson"] .dot { background:var(--alwayson); }
+.layer-toggle[data-layer="paid"]     { background:var(--paid-bg);      color:var(--paid-text);      border-color:var(--paid); }
+.layer-toggle[data-layer="paid"]     .dot { background:var(--paid); }
+.layer-toggle[data-layer="holidays"] { background:var(--holidays-bg);  color:var(--holidays-text);  border-color:var(--holidays); }
+.layer-toggle[data-layer="holidays"] .dot { background:var(--holidays); }
+.layer-toggle.off { background:transparent!important; color:var(--text-muted)!important; border-color:var(--border)!important; }
+.layer-toggle.off .dot { background:var(--text-light)!important; }
 
-/* refresh indicator */
-.refresh-dot { width:7px; height:7px; border-radius:50%; background:#10b981; flex-shrink:0; transition:background .3s; }
-.refresh-dot.loading { background:#f59e0b; animation:pulse .8s infinite; }
-.refresh-dot.error   { background:#ef4444; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+/* ── Main area: calendar + slide panel ── */
+.main {
+  flex:1; display:flex; overflow:hidden; position:relative;
+}
 
 /* ── Calendar ── */
-.day-headers { display:grid; grid-template-columns:repeat(7,1fr); background:var(--surface); border-bottom:1px solid var(--border); }
-.day-header { padding:7px 10px; font-size:10.5px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:.06em; border-right:1px solid var(--border); }
-.day-header:last-child { border-right:none; }
-.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); }
+.cal-wrap {
+  flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0;
+  transition: margin-right .25s ease;
+}
+.cal-header {
+  display:grid; grid-template-columns:repeat(7,1fr);
+  background:var(--surface); border-bottom:1px solid var(--border); flex-shrink:0;
+}
+.cal-header-day {
+  padding:6px 8px; font-size:11px; font-weight:600; color:var(--text-muted);
+  text-transform:uppercase; letter-spacing:.05em;
+  border-right:1px solid var(--border);
+}
+.cal-header-day:last-child { border-right:none; }
+
+.cal-grid {
+  flex:1; display:grid; grid-template-columns:repeat(7,1fr);
+  grid-auto-rows:minmax(0,1fr); overflow-y:auto;
+}
 
 .cal-cell {
-  min-height:110px; border-right:1px solid var(--border); border-bottom:1px solid var(--border);
-  padding:5px 4px 4px; background:var(--surface); transition:background .1s; cursor:pointer; position:relative;
+  background:var(--surface); border-right:1px solid var(--border);
+  border-bottom:1px solid var(--border); padding:4px;
+  cursor:pointer; transition:background .1s; overflow:hidden;
+  display:flex; flex-direction:column;
+  min-height:90px;
 }
 .cal-cell:nth-child(7n) { border-right:none; }
 .cal-cell:hover { background:var(--surface2); }
 .cal-cell.other-month { background:var(--bg); }
-.cal-cell.other-month .day-num { opacity:.35; }
-.cal-cell.today .day-num span { background:var(--campaigns); color:#fff; border-radius:50%; width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; }
-.day-num { font-size:11px; font-weight:500; color:var(--text-muted); margin-bottom:3px; padding-left:2px; height:20px; display:flex; align-items:center; }
+.cal-cell.other-month .day-num { color:var(--text-light); }
+.day-num {
+  font-size:12px; font-weight:500; color:var(--text-muted);
+  width:22px; height:22px; border-radius:50%; display:flex;
+  align-items:center; justify-content:center; flex-shrink:0; margin-bottom:2px;
+}
+.cal-cell.today .day-num { background:#7c3aed; color:#fff; font-weight:700; }
 
 /* ── Events ── */
 .event {
-  border-radius:3px; padding:2px 5px; margin-bottom:2px;
-  cursor:pointer; overflow:hidden; transition:filter .12s;
-  position:relative; text-decoration:none; display:block;
+  display:block; border-radius:3px; padding:2px 5px; margin-bottom:2px;
+  cursor:pointer; overflow:hidden; text-decoration:none; border-left:3px solid transparent;
+  transition:filter .1s; flex-shrink:0;
 }
 .event:hover { filter:brightness(.93); }
-.event-title { font-size:10.5px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.3; }
-.event-meta  { display:flex; gap:3px; flex-wrap:wrap; margin-top:2px; }
-.pill {
-  font-size:9px; font-weight:600; padding:1px 4px; border-radius:3px;
-  white-space:nowrap; line-height:1.4; letter-spacing:.02em;
+.event-title {
+  font-size:10.5px; font-weight:500; white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis; line-height:1.4;
 }
-/* content type pills */
-.pill-tiktok    { background:#000; color:#fff; }
+.event-pills { display:flex; gap:2px; flex-wrap:wrap; margin-top:2px; }
+.pill {
+  font-size:9px; font-weight:700; padding:1px 4px; border-radius:3px;
+  white-space:nowrap; line-height:1.5; letter-spacing:.01em;
+}
+.pill-tiktok    { background:#010101; color:#fff; }
 .pill-reel      { background:#e1306c; color:#fff; }
-.pill-carousel  { background:#833ab4; color:#fff; }
-.pill-stories   { background:#fd1d1d; color:#fff; }
+.pill-carousel  { background:#7c3aed; color:#fff; }
+.pill-stories   { background:#fd7e14; color:#fff; }
 .pill-image     { background:#405de6; color:#fff; }
 .pill-fbpost    { background:#1877f2; color:#fff; }
-.pill-edm       { background:#f59e0b; color:#fff; }
+.pill-edm       { background:#f59e0b; color:#111; }
+.pill-blog      { background:#6b7280; color:#fff; }
 .pill-metaads   { background:#0668E1; color:#fff; }
 .pill-googleads { background:#34a853; color:#fff; }
-.pill-default   { background:rgba(0,0,0,0.18); color:#fff; }
-/* location pills */
-.pill-igfb  { background:linear-gradient(135deg,#833ab4,#e1306c); color:#fff; }
-.pill-tkt   { background:#000; color:#fff; }
-.pill-yt    { background:#ff0000; color:#fff; }
-.pill-igt   { background:#c13584; color:#fff; }
-.pill-email { background:#6b7280; color:#fff; }
-/* layer colours */
-.event.campaigns { background:var(--campaigns-bg); border-left:2px solid var(--campaigns); }
+.pill-generic   { background:#e5e7eb; color:#374151; }
+.pill-tkt  { background:#010101; color:#fff; }
+.pill-yt   { background:#ff0000; color:#fff; }
+.pill-igfb { background:linear-gradient(135deg,#833ab4,#e1306c); color:#fff; }
+.pill-igt  { background:#c13584; color:#fff; }
+.pill-paidloc { background:#0668E1; color:#fff; }
+.pill-web  { background:#10b981; color:#fff; }
+.pill-email{ background:#6b7280; color:#fff; }
+
+.event.campaigns { background:var(--campaigns-bg); border-left-color:var(--campaigns); }
 .event.campaigns .event-title { color:var(--campaigns-text); }
-.event.content   { background:var(--content-bg);   border-left:2px solid var(--content); }
+.event.content   { background:var(--content-bg);   border-left-color:var(--content); }
 .event.content   .event-title { color:var(--content-text); }
-.event.alwayson  { background:var(--alwayson-bg);  border-left:2px solid var(--alwayson); }
+.event.alwayson  { background:var(--alwayson-bg);  border-left-color:var(--alwayson); }
 .event.alwayson  .event-title { color:var(--alwayson-text); }
-.event.paid      { background:var(--paid-bg);      border-left:2px solid var(--paid); }
+.event.paid      { background:var(--paid-bg);      border-left-color:var(--paid); }
 .event.paid      .event-title { color:var(--paid-text); }
-.event.holidays  { background:var(--holidays-bg);  border-left:2px solid var(--holidays); }
+.event.holidays  { background:var(--holidays-bg);  border-left-color:var(--holidays); }
 .event.holidays  .event-title { color:var(--holidays-text); }
 .event.span-mid, .event.span-end { border-left:none; opacity:.65; }
-.event.span-mid .event-title, .event.span-end .event-title { color:transparent; font-size:1px; }
+.event.span-mid .event-title, .event.span-end .event-title { visibility:hidden; font-size:1px; }
+.event.span-mid .event-pills, .event.span-end .event-pills { display:none; }
 .event[data-layer].hidden { display:none!important; }
+
+/* ── Slide-in task panel ── */
+.task-panel {
+  width: 420px; flex-shrink:0;
+  background:var(--surface); border-left:1px solid var(--border);
+  display:flex; flex-direction:column;
+  transform:translateX(100%); transition:transform .25s ease;
+  position:absolute; right:0; top:0; bottom:0; z-index:15;
+  box-shadow:-4px 0 16px var(--shadow);
+}
+.task-panel.open { transform:translateX(0); }
+
+.panel-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 14px; border-bottom:1px solid var(--border); flex-shrink:0;
+}
+.panel-title { font-size:13px; font-weight:600; color:var(--text); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.panel-actions { display:flex; gap:6px; flex-shrink:0; }
+.panel-close { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:18px; padding:2px 6px; border-radius:4px; line-height:1; }
+.panel-close:hover { background:var(--surface2); }
+
+.panel-iframe-wrap { flex:1; overflow:hidden; }
+.panel-iframe-wrap iframe {
+  width:100%; height:100%; border:none;
+  background:var(--surface);
+}
+
+.panel-loading {
+  display:flex; align-items:center; justify-content:center;
+  height:100%; color:var(--text-muted); font-size:12px; flex-direction:column; gap:8px;
+}
+.panel-spinner {
+  width:24px; height:24px; border:2px solid var(--border);
+  border-top-color:#7c3aed; border-radius:50%;
+  animation:spin .7s linear infinite;
+}
+@keyframes spin { to{transform:rotate(360deg)} }
 
 /* ── Create task modal ── */
 .overlay {
-  position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:100;
+  position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:100;
   display:flex; align-items:center; justify-content:center; padding:16px;
   opacity:0; pointer-events:none; transition:opacity .15s;
 }
 .overlay.open { opacity:1; pointer-events:all; }
 .modal {
-  background:var(--surface); border:1px solid var(--border); border-radius:10px;
-  padding:20px; width:100%; max-width:420px; box-shadow:0 16px 48px var(--shadow);
-  transform:translateY(12px); transition:transform .15s;
+  background:var(--surface); border:1px solid var(--border); border-radius:8px;
+  padding:20px; width:100%; max-width:400px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.15);
+  transform:translateY(10px); transition:transform .15s;
 }
 .overlay.open .modal { transform:translateY(0); }
-.modal-title { font-size:14px; font-weight:600; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; }
-.modal-close { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:18px; line-height:1; padding:2px 6px; border-radius:4px; }
-.modal-close:hover { background:var(--surface2); }
-.field { margin-bottom:12px; }
+.modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+.modal-title  { font-size:14px; font-weight:600; }
+.modal-close-btn { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:18px; padding:2px 6px; border-radius:4px; line-height:1; }
+.modal-close-btn:hover { background:var(--surface2); }
+.field { margin-bottom:11px; }
 .field label { display:block; font-size:11px; font-weight:500; color:var(--text-muted); margin-bottom:4px; text-transform:uppercase; letter-spacing:.04em; }
 .field input, .field select {
-  width:100%; padding:7px 9px; border:1px solid var(--border); border-radius:6px;
-  background:var(--surface2); color:var(--text); font-size:12.5px; outline:none;
-  transition:border-color .12s;
+  width:100%; padding:7px 10px; border:1px solid var(--border); border-radius:var(--radius);
+  background:var(--surface); color:var(--text); font-size:13px; font-family:inherit; outline:none;
 }
-.field input:focus, .field select:focus { border-color:var(--campaigns); }
+.field input:focus, .field select:focus { border-color:#7c3aed; box-shadow:0 0 0 2px rgba(124,58,237,0.12); }
 .field-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-.modal-footer { display:flex; justify-content:flex-end; gap:8px; margin-top:16px; }
-
-/* ── Tooltip ── */
-.tooltip {
-  position:fixed; background:var(--surface); border:1px solid var(--border); border-radius:8px;
-  padding:10px 12px; font-size:12px; color:var(--text); pointer-events:none; z-index:200;
-  min-width:200px; max-width:260px; box-shadow:0 8px 24px var(--shadow); display:none;
-}
-.tooltip.show { display:block; }
-.tt-title { font-weight:600; margin-bottom:6px; font-size:12.5px; }
-.tt-row { display:flex; gap:6px; margin-bottom:3px; font-size:11px; color:var(--text-muted); }
-.tt-row strong { color:var(--text); font-weight:500; }
+.modal-footer { display:flex; justify-content:flex-end; gap:8px; margin-top:14px; padding-top:14px; border-top:1px solid var(--border); }
 </style>
 </head>
 <body>
@@ -179,17 +246,17 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
 <!-- Topbar -->
 <div class="topbar">
   <div class="topbar-left">
-    <button class="btn" id="prevBtn">&#8249;</button>
+    <button class="btn btn-icon" id="prevBtn">&#8249;</button>
     <button class="btn" onclick="goToday()">Today</button>
-    <button class="btn" id="nextBtn">&#8250;</button>
+    <button class="btn btn-icon" id="nextBtn">&#8250;</button>
     <span class="month-label" id="monthLabel"></span>
-    <span class="refresh-dot" id="refreshDot" title="Data status"></span>
-    <button class="btn" onclick="loadTasks()" style="font-size:11px">↻ Refresh</button>
-    <button class="btn" id="themeBtn">☾</button>
+    <span class="status-dot" id="statusDot" title="Data status"></span>
+    <button class="btn" onclick="loadTasks()" style="font-size:11px;padding:3px 8px">↻</button>
+    <button class="btn btn-icon" id="themeBtn" title="Toggle theme">☾</button>
   </div>
-
+  <div class="topbar-sep"></div>
   <div class="layers">
-    <span class="layer-label">Lists</span>
+    <span class="layers-label">Lists</span>
     <button class="layer-toggle" data-layer="campaigns"><span class="dot"></span>Campaigns</button>
     <button class="layer-toggle" data-layer="content"><span class="dot"></span>Content</button>
     <button class="layer-toggle" data-layer="alwayson"><span class="dot"></span>Always On</button>
@@ -198,31 +265,51 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
   </div>
 </div>
 
-<!-- Day headers -->
-<div class="day-headers">
-  <div class="day-header">Mon</div><div class="day-header">Tue</div><div class="day-header">Wed</div>
-  <div class="day-header">Thu</div><div class="day-header">Fri</div><div class="day-header">Sat</div>
-  <div class="day-header">Sun</div>
+<!-- Main -->
+<div class="main">
+  <div class="cal-wrap" id="calWrap">
+    <div class="cal-header">
+      <div class="cal-header-day">Mon</div><div class="cal-header-day">Tue</div>
+      <div class="cal-header-day">Wed</div><div class="cal-header-day">Thu</div>
+      <div class="cal-header-day">Fri</div><div class="cal-header-day">Sat</div>
+      <div class="cal-header-day">Sun</div>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+  </div>
+
+  <!-- Slide-in task panel -->
+  <div class="task-panel" id="taskPanel">
+    <div class="panel-header">
+      <span class="panel-title" id="panelTitle">Task</span>
+      <div class="panel-actions">
+        <a class="btn btn-icon" id="panelOpenLink" href="#" target="_blank" title="Open in new tab" style="text-decoration:none;font-size:11px">↗ Open</a>
+        <button class="panel-close" onclick="closePanel()">×</button>
+      </div>
+    </div>
+    <div class="panel-iframe-wrap" id="panelContent">
+      <div class="panel-loading">
+        <div class="panel-spinner"></div>
+        <span>Loading task…</span>
+      </div>
+    </div>
+  </div>
 </div>
 
-<!-- Calendar grid -->
-<div class="cal-grid" id="calGrid"></div>
-
-<!-- Create task overlay -->
+<!-- Create task modal -->
 <div class="overlay" id="overlay">
   <div class="modal">
-    <div class="modal-title">
-      <span>New Task</span>
-      <button class="modal-close" onclick="closeModal()">×</button>
+    <div class="modal-header">
+      <span class="modal-title">New Task</span>
+      <button class="modal-close-btn" onclick="closeModal()">×</button>
     </div>
     <div class="field">
       <label>Title</label>
-      <input type="text" id="f-title" placeholder="Task name..." />
+      <input type="text" id="f-title" placeholder="Task name…" />
     </div>
     <div class="field">
       <label>List</label>
       <select id="f-layer">
-        <option value="content">Organic Content</option>
+        <option value="content">Campaign Content</option>
         <option value="campaigns">Campaigns</option>
         <option value="alwayson">Always On</option>
         <option value="paid">Paid Ads</option>
@@ -230,26 +317,14 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
       </select>
     </div>
     <div class="field-row">
-      <div class="field">
-        <label>Start Date</label>
-        <input type="date" id="f-start" />
-      </div>
-      <div class="field">
-        <label>End / Due Date</label>
-        <input type="date" id="f-end" />
-      </div>
+      <div class="field"><label>Start Date</label><input type="date" id="f-start" /></div>
+      <div class="field"><label>Due / End Date</label><input type="date" id="f-end" /></div>
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="createTask()" id="createBtn">Create Task</button>
+      <button class="btn btn-primary" id="createBtn" onclick="createTask()">Create Task</button>
     </div>
   </div>
-</div>
-
-<!-- Tooltip -->
-<div class="tooltip" id="tooltip">
-  <div class="tt-title" id="tt-title"></div>
-  <div id="tt-body"></div>
 </div>
 
 <script>
@@ -257,143 +332,139 @@ const API = "/api/clickup";
 let tasks = [];
 let currentYear = new Date().getFullYear();
 let currentMonth = new Date().getMonth();
-let pendingDate = null;
 const layerVis = { campaigns:true, content:true, alwayson:true, paid:true, holidays:true };
 
 // ── Theme ──
 let forceDark = null;
 const themeBtn = document.getElementById("themeBtn");
-function isDarkMode() {
-  return forceDark !== null ? forceDark : window.matchMedia("(prefers-color-scheme:dark)").matches;
-}
+function isDark() { return forceDark !== null ? forceDark : window.matchMedia("(prefers-color-scheme:dark)").matches; }
 function applyTheme() {
-  const dark = isDarkMode();
-  dark ? document.documentElement.setAttribute("data-dark","") : document.documentElement.removeAttribute("data-dark");
-  themeBtn.textContent = dark ? "☀︎" : "☾";
+  isDark() ? document.documentElement.setAttribute("data-dark","") : document.documentElement.removeAttribute("data-dark");
+  themeBtn.textContent = isDark() ? "☀︎" : "☾";
 }
-themeBtn.addEventListener("click", () => { forceDark = !isDarkMode(); applyTheme(); });
+themeBtn.addEventListener("click", () => { forceDark = !isDark(); applyTheme(); });
 window.matchMedia("(prefers-color-scheme:dark)").addEventListener("change", () => { if(forceDark===null) applyTheme(); });
 applyTheme();
 
-// ── Load tasks from API ──
+// ── Pill helpers ──
+function typePillClass(t) {
+  const m = { TikTok:"pill-tiktok", Reel:"pill-reel", Carousel:"pill-carousel",
+    Stories:"pill-stories", Image:"pill-image", "FB Post":"pill-fbpost",
+    EDM:"pill-edm", Blog:"pill-blog", "Meta Ads":"pill-metaads", "Google Ads":"pill-googleads" };
+  return m[t] || "pill-generic";
+}
+function locPillClass(l) {
+  const m = { TikTok:"pill-tkt", YouTube:"pill-yt", "IG/FB":"pill-igfb",
+    "IG Trial":"pill-igt", "Paid Ad":"pill-paidloc", Website:"pill-web", Email:"pill-email" };
+  return m[l] || "pill-generic";
+}
+
+// ── Load tasks ──
 async function loadTasks() {
-  const dot = document.getElementById("refreshDot");
-  dot.className = "refresh-dot loading";
+  const dot = document.getElementById("statusDot");
+  dot.className = "status-dot loading";
   try {
     const res = await fetch(`${API}?action=tasks`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     tasks = await res.json();
-    dot.className = "refresh-dot";
+    dot.className = "status-dot";
+    dot.title = `Refreshed ${new Date().toLocaleTimeString("en-AU")}`;
     render();
   } catch(e) {
-    dot.className = "refresh-dot error";
-    dot.title = "Error loading: " + e.message;
+    dot.className = "status-dot error";
+    dot.title = "Error: " + e.message;
     console.error(e);
   }
 }
 
-// ── Helpers ──
+// ── Date helpers ──
 function parseDate(s) { if(!s) return null; const [y,m,d]=s.split("-").map(Number); return new Date(y,m-1,d); }
 function isSameDay(a,b) { return a&&b&&a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate(); }
 function fmtDate(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 
-function pillClass(type) {
-  const m = { TikTok:"pill-tiktok",Reel:"pill-reel",Carousel:"pill-carousel",Stories:"pill-stories",
-    Image:"pill-image","FB Post":"pill-fbpost",EDM:"pill-edm","Meta Ads":"pill-metaads","Google Ads":"pill-googleads" };
-  return m[type] || "pill-default";
-}
-function locClass(l) {
-  const m = { "IG/FB":"pill-igfb",TikTok:"pill-tkt",YouTube:"pill-yt","IG TR":"pill-igt",Email:"pill-email" };
-  return m[l] || "pill-default";
-}
-
 // ── Render ──
 function render() {
   const months=["January","February","March","April","May","June","July","August","September","October","November","December"];
-  document.getElementById("monthLabel").textContent=`${months[currentMonth]} ${currentYear}`;
-  const grid=document.getElementById("calGrid");
-  grid.innerHTML="";
-  const today=new Date();
-  const firstDay=new Date(currentYear,currentMonth,1);
-  const startOffset=(firstDay.getDay()+6)%7;
-  const daysInMonth=new Date(currentYear,currentMonth+1,0).getDate();
-  const prevDays=new Date(currentYear,currentMonth,0).getDate();
+  document.getElementById("monthLabel").textContent = `${months[currentMonth]} ${currentYear}`;
+  const grid = document.getElementById("calGrid");
+  grid.innerHTML = "";
+  const today = new Date();
+  const firstDay = new Date(currentYear, currentMonth, 1);
+  const startOffset = (firstDay.getDay()+6)%7;
+  const daysInMonth = new Date(currentYear,currentMonth+1,0).getDate();
+  const prevDays = new Date(currentYear,currentMonth,0).getDate();
 
-  const cells=[];
+  const cells = [];
   for(let i=startOffset-1;i>=0;i--) cells.push({date:new Date(currentYear,currentMonth-1,prevDays-i),other:true});
   for(let d=1;d<=daysInMonth;d++) cells.push({date:new Date(currentYear,currentMonth,d),other:false});
   const rem=(7-(cells.length%7))%7;
   for(let d=1;d<=rem;d++) cells.push({date:new Date(currentYear,currentMonth+1,d),other:true});
 
-  cells.forEach(cell=>{
-    const div=document.createElement("div");
-    div.className="cal-cell"+(cell.other?" other-month":"")+(isSameDay(cell.date,today)?" today":"");
+  cells.forEach(cell => {
+    const div = document.createElement("div");
+    div.className = "cal-cell"+(cell.other?" other-month":"")+(isSameDay(cell.date,today)?" today":"");
 
-    const numDiv=document.createElement("div");
-    numDiv.className="day-num";
-    numDiv.innerHTML=`<span>${cell.date.getDate()}</span>`;
+    const numDiv = document.createElement("div");
+    numDiv.className = "day-num";
+    numDiv.textContent = cell.date.getDate();
     div.appendChild(numDiv);
 
-    // Click on empty cell → create task
-    div.addEventListener("click", (e) => {
-      if(e.target===div||e.target===numDiv||e.target.tagName==="SPAN") openModal(cell.date);
+    // Click blank cell → create task
+    div.addEventListener("click", e => {
+      if(e.target===div||e.target===numDiv) openModal(cell.date);
     });
 
-    const dayTasks=tasks.filter(t=>{
-      const s=parseDate(t.start), e=parseDate(t.end)||parseDate(t.start);
+    // Tasks for this cell
+    const dayTasks = tasks.filter(t => {
+      const s = parseDate(t.start), e = parseDate(t.end) || parseDate(t.start);
       if(!s&&!e) return false;
-      return cell.date>=(s||e) && cell.date<=(e||s);
+      return cell.date >= (s||e) && cell.date <= (e||s);
     });
 
-    dayTasks.forEach(t=>{
-      if(!t.start&&!t.end) return;
-      const s=parseDate(t.start), e=parseDate(t.end)||parseDate(t.start);
-      const isStart=isSameDay(cell.date,s), isEnd=isSameDay(cell.date,e);
-      const isSpan=s&&e&&!isSameDay(s,e);
-      let spanClass="";
-      if(isSpan){ spanClass=isStart?"span-start":isEnd?"span-end":"span-mid"; }
+    dayTasks.forEach(t => {
+      const s = parseDate(t.start), e = parseDate(t.end) || parseDate(t.start);
+      const isStart = isSameDay(cell.date, s||e);
+      const isEnd   = isSameDay(cell.date, e||s);
+      const isSpan  = s && e && !isSameDay(s,e);
+      let spanClass = "";
+      if(isSpan) { spanClass = isStart ? "span-start" : isEnd ? "span-end" : "span-mid"; }
 
-      const evDiv=document.createElement("a");
-      evDiv.className=`event ${t.layer} ${spanClass}`;
-      evDiv.setAttribute("data-layer",t.layer);
-      evDiv.href=t.url||"#";
-      evDiv.target="_blank";
-      evDiv.rel="noopener";
-      if(!t.url) evDiv.addEventListener("click",e=>e.preventDefault());
-
+      const evDiv = document.createElement("div");
+      evDiv.className = `event ${t.layer} ${spanClass}`;
+      evDiv.setAttribute("data-layer", t.layer);
       if(!layerVis[t.layer]) evDiv.classList.add("hidden");
 
-      if(!isSpan||isStart){
-        const titleDiv=document.createElement("div");
-        titleDiv.className="event-title";
-        titleDiv.textContent=t.title;
+      // Click task → open slide panel
+      evDiv.addEventListener("click", e => { e.stopPropagation(); openPanel(t); });
+
+      if(!isSpan || isStart) {
+        const titleDiv = document.createElement("div");
+        titleDiv.className = "event-title";
+        titleDiv.textContent = t.title;
         evDiv.appendChild(titleDiv);
 
-        if(t.type||t.locations?.length){
-          const meta=document.createElement("div");
-          meta.className="event-meta";
-          if(t.type&&!["Campaign","Holiday","Public Holiday","Key Date"].includes(t.type)){
-            const p=document.createElement("span");
-            p.className=`pill ${pillClass(t.type)}`;
-            p.textContent=t.type;
-            meta.appendChild(p);
+        // Pills: content type + publish locations
+        const showType = t.type && !["Campaign","Always On","Selling Season"].includes(t.type);
+        if(showType || (t.locations && t.locations.length)) {
+          const pillsDiv = document.createElement("div");
+          pillsDiv.className = "event-pills";
+          if(showType) {
+            const p = document.createElement("span");
+            p.className = `pill ${typePillClass(t.type)}`;
+            p.textContent = t.type;
+            pillsDiv.appendChild(p);
           }
-          (t.locations||[]).forEach(l=>{
-            const p=document.createElement("span");
-            p.className=`pill ${locClass(l)}`;
-            p.textContent=l;
-            meta.appendChild(p);
+          (t.locations||[]).forEach(l => {
+            const p = document.createElement("span");
+            p.className = `pill ${locPillClass(l)}`;
+            p.textContent = l;
+            pillsDiv.appendChild(p);
           });
-          if(meta.children.length) evDiv.appendChild(meta);
+          if(pillsDiv.children.length) evDiv.appendChild(pillsDiv);
         }
       } else {
-        evDiv.innerHTML="&nbsp;";
+        evDiv.innerHTML = "&nbsp;";
       }
-
-      evDiv.addEventListener("mouseenter",ev=>showTip(ev,t));
-      evDiv.addEventListener("mouseleave",hideTip);
-      evDiv.addEventListener("mousemove",moveTip);
-      evDiv.addEventListener("click",ev=>ev.stopPropagation());
 
       div.appendChild(evDiv);
     });
@@ -402,88 +473,141 @@ function render() {
   });
 }
 
-// ── Layer toggles ──
-document.querySelectorAll(".layer-toggle").forEach(btn=>{
-  btn.addEventListener("click",()=>{
-    const l=btn.dataset.layer;
-    layerVis[l]=!layerVis[l];
-    btn.classList.toggle("off",!layerVis[l]);
-    document.querySelectorAll(`.event[data-layer="${l}"]`).forEach(ev=>ev.classList.toggle("hidden",!layerVis[l]));
-  });
+// ── Slide panel ──
+function openPanel(task) {
+  const panel = document.getElementById("taskPanel");
+  const content = document.getElementById("panelContent");
+  const titleEl = document.getElementById("panelTitle");
+  const linkBtn = document.getElementById("panelOpenLink");
+
+  titleEl.textContent = task.title;
+  linkBtn.href = task.url || "#";
+
+  // Show spinner then load iframe
+  content.innerHTML = `<div class="panel-loading"><div class="panel-spinner"></div><span>Loading…</span></div>`;
+
+  if(task.url) {
+    // Small delay so panel animates in first
+    setTimeout(() => {
+      const iframe = document.createElement("iframe");
+      iframe.src = task.url;
+      iframe.style.cssText = "width:100%;height:100%;border:none;";
+      iframe.setAttribute("allow", "clipboard-read; clipboard-write");
+      // If ClickUp blocks iframe (X-Frame-Options), show fallback
+      iframe.addEventListener("error", () => showPanelFallback(task));
+      content.innerHTML = "";
+      content.appendChild(iframe);
+    }, 200);
+  } else {
+    showPanelFallback(task);
+  }
+
+  panel.classList.add("open");
+}
+
+function showPanelFallback(task) {
+  // ClickUp may block iframe embedding — show a clean detail card instead
+  const content = document.getElementById("panelContent");
+  const pub = task.publishDate ? new Date(task.publishDate).toLocaleDateString("en-AU",{day:"numeric",month:"short",year:"numeric"}) : "—";
+  const start = task.start ? new Date(task.start).toLocaleDateString("en-AU",{day:"numeric",month:"short"}) : "—";
+  const end = task.end ? new Date(task.end).toLocaleDateString("en-AU",{day:"numeric",month:"short"}) : "—";
+
+  content.innerHTML = `
+    <div style="padding:16px;overflow-y:auto;height:100%">
+      <div style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Status</div>
+        <div style="display:inline-block;padding:2px 8px;border-radius:4px;background:var(--surface2);font-size:12px;font-weight:500;text-transform:capitalize">${task.status||"—"}</div>
+      </div>
+      <div style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">List</div>
+        <div style="font-size:13px">${task.layer}</div>
+      </div>
+      ${task.type?`<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Content Type</div><div style="font-size:13px">${task.type}</div></div>`:""}
+      ${task.locations&&task.locations.length?`<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Publish Locations</div><div style="display:flex;gap:4px;flex-wrap:wrap">${task.locations.map(l=>`<span class="pill ${locPillClass(l)}">${l}</span>`).join("")}</div></div>`:""}
+      <div style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Publish Date</div>
+        <div style="font-size:13px">${pub}</div>
+      </div>
+      <div style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Campaign Dates</div>
+        <div style="font-size:13px">${start} → ${end}</div>
+      </div>
+      ${task.assignees&&task.assignees.length?`<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Assignees</div><div style="font-size:13px">${task.assignees.map(a=>a.name).join(", ")}</div></div>`:""}
+      <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--border)">
+        <a href="${task.url}" target="_blank" class="btn btn-primary" style="display:inline-block;text-decoration:none;font-size:12px">↗ Open in ClickUp</a>
+      </div>
+    </div>`;
+}
+
+function closePanel() {
+  document.getElementById("taskPanel").classList.remove("open");
+}
+
+// Close panel on Escape
+document.addEventListener("keydown", e => {
+  if(e.key === "Escape") { closeModal(); closePanel(); }
 });
 
-// ── Nav ──
-document.getElementById("prevBtn").addEventListener("click",()=>{ currentMonth--; if(currentMonth<0){currentMonth=11;currentYear--;} render(); });
-document.getElementById("nextBtn").addEventListener("click",()=>{ currentMonth++; if(currentMonth>11){currentMonth=0;currentYear++;} render(); });
-function goToday(){ const n=new Date(); currentYear=n.getFullYear(); currentMonth=n.getMonth(); render(); }
-
-// ── Tooltip ──
-const tip=document.getElementById("tooltip");
-function showTip(e,t){
-  document.getElementById("tt-title").textContent=t.title;
-  let h=`<div class="tt-row">List: <strong>${t.layer}</strong></div>`;
-  if(t.status) h+=`<div class="tt-row">Status: <strong>${t.status}</strong></div>`;
-  if(t.type)   h+=`<div class="tt-row">Type: <strong>${t.type}</strong></div>`;
-  if(t.locations?.length) h+=`<div class="tt-row">Publish: <strong>${t.locations.join(", ")}</strong></div>`;
-  if(t.assignees?.length) h+=`<div class="tt-row">Assigned: <strong>${t.assignees.map(a=>a.name).join(", ")}</strong></div>`;
-  if(t.start||t.end) h+=`<div class="tt-row">Dates: <strong>${t.start||""}${t.end&&t.end!==t.start?" → "+t.end:""}</strong></div>`;
-  if(t.url) h+=`<div class="tt-row" style="margin-top:4px;color:var(--campaigns-text)">↗ Click to open in ClickUp</div>`;
-  document.getElementById("tt-body").innerHTML=h;
-  tip.classList.add("show"); moveTip(e);
-}
-function moveTip(e){
-  let x=e.clientX+14, y=e.clientY+14;
-  if(x+270>window.innerWidth) x=e.clientX-270;
-  if(y+200>window.innerHeight) y=e.clientY-200;
-  tip.style.left=x+"px"; tip.style.top=y+"px";
-}
-function hideTip(){ tip.classList.remove("show"); }
-
 // ── Create task modal ──
-function openModal(date){
-  pendingDate=date;
-  const d=fmtDate(date);
-  document.getElementById("f-start").value=d;
-  document.getElementById("f-end").value=d;
-  document.getElementById("f-title").value="";
+function openModal(date) {
+  const d = fmtDate(date);
+  document.getElementById("f-start").value = d;
+  document.getElementById("f-end").value = d;
+  document.getElementById("f-title").value = "";
   document.getElementById("overlay").classList.add("open");
-  setTimeout(()=>document.getElementById("f-title").focus(),120);
+  setTimeout(() => document.getElementById("f-title").focus(), 120);
 }
-function closeModal(){ document.getElementById("overlay").classList.remove("open"); }
+function closeModal() { document.getElementById("overlay").classList.remove("open"); }
+document.getElementById("overlay").addEventListener("click", e => { if(e.target.id==="overlay") closeModal(); });
 
-document.getElementById("overlay").addEventListener("click",e=>{ if(e.target===document.getElementById("overlay")) closeModal(); });
-document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeModal(); });
-
-async function createTask(){
-  const title=document.getElementById("f-title").value.trim();
+async function createTask() {
+  const title = document.getElementById("f-title").value.trim();
   if(!title) { document.getElementById("f-title").focus(); return; }
-  const btn=document.getElementById("createBtn");
-  btn.textContent="Creating..."; btn.disabled=true;
-  try{
-    const res=await fetch(`${API}?action=create`,{
+  const btn = document.getElementById("createBtn");
+  btn.textContent = "Creating…"; btn.disabled = true;
+  try {
+    const res = await fetch(`${API}?action=create`, {
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({
         title,
-        layer:document.getElementById("f-layer").value,
-        start:document.getElementById("f-start").value,
-        end:document.getElementById("f-end").value,
+        layer: document.getElementById("f-layer").value,
+        start: document.getElementById("f-start").value,
+        end:   document.getElementById("f-end").value,
       })
     });
-    const data=await res.json();
+    const data = await res.json();
     closeModal();
     await loadTasks();
-    if(data.url) window.open(data.url,"_blank");
-  }catch(e){
-    alert("Error creating task: "+e.message);
-  }finally{
-    btn.textContent="Create Task"; btn.disabled=false;
+    // Open new task in panel
+    if(data.url) {
+      const newTask = tasks.find(t => t.id === data.id) || { id:data.id, title, url:data.url, layer:document.getElementById("f-layer").value };
+      openPanel(newTask);
+    }
+  } catch(e) {
+    alert("Error creating task: " + e.message);
+  } finally {
+    btn.textContent = "Create Task"; btn.disabled = false;
   }
 }
 
+// ── Nav ──
+document.getElementById("prevBtn").addEventListener("click", () => { currentMonth--; if(currentMonth<0){currentMonth=11;currentYear--;} render(); });
+document.getElementById("nextBtn").addEventListener("click", () => { currentMonth++; if(currentMonth>11){currentMonth=0;currentYear++;} render(); });
+function goToday() { const n=new Date(); currentYear=n.getFullYear(); currentMonth=n.getMonth(); render(); }
+
+// ── Layer toggles ──
+document.querySelectorAll(".layer-toggle").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const l = btn.dataset.layer;
+    layerVis[l] = !layerVis[l];
+    btn.classList.toggle("off", !layerVis[l]);
+    document.querySelectorAll(`.event[data-layer="${l}"]`).forEach(ev => ev.classList.toggle("hidden", !layerVis[l]));
+  });
+});
+
 // ── Init ──
 loadTasks();
-// Auto-refresh every 10 minutes
 setInterval(loadTasks, 10*60*1000);
 </script>
 </body>

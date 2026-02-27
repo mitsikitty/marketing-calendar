@@ -3,14 +3,82 @@ import type { Context } from "@netlify/functions";
 const CLICKUP_TOKEN = Netlify.env.get("CLICKUP_API_TOKEN");
 const BASE = "https://api.clickup.com/api/v2";
 
-// List IDs from Campaigns & Events folder
 const LISTS = {
-  campaigns:   "901605021480",
-  content:     "901613760281",
-  alwayson:    "901613760528",
-  paid:        "901613760525",
-  holidays:    "901605021479",
+  campaigns: "901605021480",
+  content:   "901613760281",
+  alwayson:  "901613760528",
+  paid:      "901613760525",
+  holidays:  "901605021479",
 };
+
+// ── Content Type dropdown (field id: 3cebb834) ──
+const CONTENT_TYPE_MAP: Record<string, string> = {
+  "67df7085-a7b0-4e46-a111-e17eae6db20f": "Selling Season",
+  "7f2f91c1-9241-4083-b9b5-940bd986709e": "Always On",
+  "c67069ed-68f6-4b34-b934-0f0cee5fbe2f": "Campaign",
+  "1532c87d-7f97-40ee-8566-dadd2bbd212e": "TikTok",
+  "99253399-a249-4974-b832-5e36eb8dd9fe": "Reel",
+  "14d1f926-5a13-4af1-aab4-33107b0bf8ed": "Carousel",
+  "2cbcedf0-a4bd-4550-a0bf-79f188643ac0": "Image",
+  "458ff636-4838-444e-a9a0-b5597a2d217d": "Stories",
+  "a82a3191-68cf-4f8f-bf62-7fb54498279d": "FB Post",
+  "9bd505f6-0879-4f9b-b14f-a8ca9e346c1c": "EDM",
+  "531e488d-830f-4811-999e-3b3ec29e8de0": "Blog",
+  "c1b6e48e-bf41-45e1-a844-5810c5497d9c": "Pop Up",
+  "703f4d40-7330-4468-976e-dcba86000a3f": "Web Banner",
+};
+
+// ── Content Type dropdown index → name (API returns orderindex as number) ──
+const CONTENT_TYPE_BY_INDEX: Record<number, string> = {
+  0: "Selling Season", 1: "Always On", 2: "Campaign", 3: "TikTok",
+  4: "Reel", 5: "Carousel", 6: "Image", 7: "Stories",
+  8: "FB Post", 9: "EDM", 10: "Blog", 11: "Pop Up", 12: "Web Banner",
+};
+
+// ── Publish Location labels (field id: d6772935) ──
+const PUBLISH_LOCATION_MAP: Record<string, string> = {
+  "bd98450a-4924-4f88-9cba-5328f53185b4": "TikTok",
+  "c018ba0f-8b8c-4401-8a11-d948a80597a0": "YouTube",
+  "3b1303cf-c6c2-4b1a-aeab-3fb9621dd2a8": "IG/FB",
+  "7b91e229-1748-455b-b853-842c0848c719": "Paid Ad",
+  "eea4773f-dc3b-40d8-ad86-6e44691e3a80": "IG Trial",
+  "1215d30f-7e7e-49eb-8147-33d2b5421a86": "Website",
+  "b7f5ec79-cada-4ad7-8860-8928205d5638": "Email",
+};
+
+// ── Hemisphere dropdown ──
+const HEMISPHERE_MAP: Record<number, string> = { 0: "Both", 1: "Southern", 2: "Northern" };
+
+function resolveContentType(field: any): string {
+  if (!field || field.value === null || field.value === undefined) return "";
+  // dropdown returns a number (orderindex)
+  if (typeof field.value === "number") return CONTENT_TYPE_BY_INDEX[field.value] || String(field.value);
+  // sometimes returns UUID string
+  if (typeof field.value === "string") return CONTENT_TYPE_MAP[field.value] || field.value;
+  return "";
+}
+
+function resolveLocations(field: any): string[] {
+  if (!field || !field.value) return [];
+  const vals = Array.isArray(field.value) ? field.value : [field.value];
+  return vals.map((v: any) => {
+    if (typeof v === "string") return PUBLISH_LOCATION_MAP[v] || v;
+    if (typeof v === "object" && v?.id) return PUBLISH_LOCATION_MAP[v.id] || v.label || v.name || v.id;
+    return String(v);
+  }).filter(Boolean);
+}
+
+function resolvePublishDate(fields: any[]): string | null {
+  const f = fields?.find((f: any) => f.name === "Publish Date");
+  if (!f || !f.value) return null;
+  return new Date(Number(f.value)).toISOString().split("T")[0];
+}
+
+function resolveEndDate(fields: any[]): string | null {
+  const f = fields?.find((f: any) => f.name === "End date");
+  if (!f || !f.value) return null;
+  return new Date(Number(f.value)).toISOString().split("T")[0];
+}
 
 export default async (req: Request, context: Context) => {
   const url = new URL(req.url);
@@ -21,73 +89,66 @@ export default async (req: Request, context: Context) => {
     "Access-Control-Allow-Origin": "*",
   };
 
-  if (req.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers });
-  }
-
-  if (!CLICKUP_TOKEN) {
-    return new Response(JSON.stringify({ error: "Missing CLICKUP_API_TOKEN env var" }), { status: 500, headers });
-  }
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers });
+  if (!CLICKUP_TOKEN) return new Response(JSON.stringify({ error: "Missing CLICKUP_API_TOKEN" }), { status: 500, headers });
 
   try {
-    // ── GET: fetch tasks from all lists ──
+    // ── GET tasks ──
     if (action === "tasks") {
       const results = await Promise.all(
         Object.entries(LISTS).map(async ([layer, listId]) => {
           const res = await fetch(
-            `${BASE}/list/${listId}/task?include_closed=false&subtasks=false&date_updated_gt=0`,
+            `${BASE}/list/${listId}/task?include_closed=false&subtasks=false`,
             { headers: { Authorization: CLICKUP_TOKEN } }
           );
           const data = await res.json() as any;
-          return (data.tasks || []).map((t: any) => ({
-            id:        t.id,
-            title:     t.name,
-            layer,
-            start:     t.start_date ? new Date(Number(t.start_date)).toISOString().split("T")[0] : (t.due_date ? new Date(Number(t.due_date)).toISOString().split("T")[0] : null),
-            end:       t.due_date   ? new Date(Number(t.due_date)).toISOString().split("T")[0]   : null,
-            status:    t.status?.status || "",
-            url:       t.url,
-            assignees: t.assignees?.map((a: any) => ({ id: a.id, name: a.username, avatar: a.profilePicture })) || [],
-            type:      t.custom_fields?.find((f: any) => f.name === "Content Type")?.value || "",
-            locations: (() => {
-              const f = t.custom_fields?.find((f: any) => f.name === "Publish Location");
-              if (!f) return [];
-              if (Array.isArray(f.value)) return f.value.map((v: any) => v.name || v);
-              if (typeof f.value === "string") return [f.value];
-              return [];
-            })(),
-          }));
+          return (data.tasks || []).map((t: any) => {
+            const cf = t.custom_fields || [];
+            const contentTypeField = cf.find((f: any) => f.name === "Content Type" && f.type === "drop_down");
+            const publishLocField  = cf.find((f: any) => f.name === "Publish Location");
+            const publishDate      = resolvePublishDate(cf);
+            const endDate          = resolveEndDate(cf);
+
+            // Use publish date as the display date for content; fall back to due_date
+            const displayDate = publishDate
+              || (t.due_date ? new Date(Number(t.due_date)).toISOString().split("T")[0] : null);
+            const startDate = t.start_date
+              ? new Date(Number(t.start_date)).toISOString().split("T")[0]
+              : displayDate;
+
+            return {
+              id:          t.id,
+              title:       t.name,
+              layer,
+              start:       startDate,
+              end:         endDate || (t.due_date ? new Date(Number(t.due_date)).toISOString().split("T")[0] : startDate),
+              publishDate,
+              status:      t.status?.status || "",
+              url:         t.url,
+              assignees:   t.assignees?.map((a: any) => ({ id: a.id, name: a.username })) || [],
+              type:        resolveContentType(contentTypeField),
+              locations:   resolveLocations(publishLocField),
+            };
+          });
         })
       );
       return new Response(JSON.stringify(results.flat()), { headers });
     }
 
-    // ── GET: fetch members for assignee dropdown ──
-    if (action === "members") {
-      const res = await fetch(`${BASE}/list/${LISTS.content}/member`, {
-        headers: { Authorization: CLICKUP_TOKEN }
-      });
-      const data = await res.json() as any;
-      return new Response(JSON.stringify(data.members || []), { headers });
-    }
-
-    // ── POST: create a task ──
+    // ── POST create task ──
     if (action === "create" && req.method === "POST") {
       const body = await req.json() as any;
       const listId = LISTS[body.layer as keyof typeof LISTS] || LISTS.content;
-
       const payload: any = {
         name:       body.title,
-        status:     "PLANNING",
+        status:     "planning",
         start_date: body.start ? new Date(body.start).getTime() : undefined,
-        due_date:   body.end   ? new Date(body.end).getTime()   : (body.start ? new Date(body.start).getTime() : undefined),
-        assignees:  body.assignees || [],
+        due_date:   body.end   ? new Date(body.end).getTime() : (body.start ? new Date(body.start).getTime() : undefined),
       };
-
       const res = await fetch(`${BASE}/list/${listId}/task`, {
-        method:  "POST",
+        method: "POST",
         headers: { Authorization: CLICKUP_TOKEN, "Content-Type": "application/json" },
-        body:    JSON.stringify(payload),
+        body: JSON.stringify(payload),
       });
       const task = await res.json() as any;
       return new Response(JSON.stringify({ id: task.id, url: task.url }), { headers });
