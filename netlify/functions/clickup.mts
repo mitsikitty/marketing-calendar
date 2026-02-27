@@ -214,7 +214,7 @@ export default async (req: Request, context: Context) => {
     // ── POST update task ──
     if (action === "update" && req.method === "POST") {
       const body = await req.json() as any;
-      const { id: taskId, status, name, startDate, dueDate, description } = body;
+      const { id: taskId, status, name, startDate, dueDate, description, publishDate, publishDateFieldId } = body;
       if (!taskId) return new Response(JSON.stringify({ error: "Missing id" }), { status: 400, headers });
       const payload: any = {};
       if (status      !== undefined) payload.status      = status;
@@ -230,6 +230,23 @@ export default async (req: Request, context: Context) => {
       if (!res.ok) {
         const err = await res.json() as any;
         return new Response(JSON.stringify({ error: err.err || "Update failed" }), { status: res.status, headers });
+      }
+      // Update Publish Date custom field if provided
+      if (publishDateFieldId !== undefined) {
+        try {
+          if (publishDate) {
+            await fetch(`${BASE}/task/${taskId}/field/${publishDateFieldId}`, {
+              method: "POST",
+              headers: { Authorization: CLICKUP_TOKEN, "Content-Type": "application/json" },
+              body: JSON.stringify({ value: new Date(publishDate).getTime() }),
+            });
+          } else {
+            await fetch(`${BASE}/task/${taskId}/field/${publishDateFieldId}`, {
+              method: "DELETE",
+              headers: { Authorization: CLICKUP_TOKEN },
+            });
+          }
+        } catch { /* best-effort */ }
       }
       return new Response(JSON.stringify({ ok: true }), { headers });
     }
