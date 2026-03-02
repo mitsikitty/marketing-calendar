@@ -602,9 +602,20 @@ let currentView = 'month';
 const layerVis = { campaigns:true, content:true, alwayson:true, paid:true, holidays:true };
 
 // Open task natively in ClickUp desktop app using the clickup:// protocol
+// Uses a hidden <a> element so the protocol handler fires without navigating
+// the current page (important when the calendar is embedded in an iframe).
+function openClickUpTask(id) {
+  const a = document.createElement("a");
+  a.href = `clickup://t/${id}`;
+  a.style.display = "none";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
 let _lbTaskId = null;
 function openInClickUp() {
-  if(_lbTaskId) window.open(`clickup://t/${_lbTaskId}`);
+  if(_lbTaskId) openClickUpTask(_lbTaskId);
 }
 
 // ── Theme ──
@@ -950,7 +961,7 @@ function renderDayView(days) {
         : escapeHtml(t.title);
       spanHtml += `<div class="event ${t.layer} span-start span-end" data-taskid="${t.id}"
         style="grid-column:${gridCol};cursor:pointer;margin:1px 2px"
-        onclick="window.open('clickup://t/${t.id}')"
+        onclick="openClickUpTask('${t.id}')"
         onmouseenter="_showTip(event,tasks.find(x=>x.id==='${t.id}'))"
         onmousemove="_moveTip(event)" onmouseleave="_hideTip()">
         <div class="event-title">${spanTitleHtml}</div>
@@ -980,7 +991,7 @@ function renderDayView(days) {
         : escapeHtml(t.title);
       bodyHtml += `<div class="event ${t.layer}" data-taskid="${t.id}" data-layer="${t.layer}"
         style="cursor:pointer"
-        onclick="window.open('clickup://t/${t.id}')"
+        onclick="openClickUpTask('${t.id}')"
         onmouseenter="_showTip(event,tasks.find(x=>x.id==='${t.id}'))"
         onmousemove="_moveTip(event)" onmouseleave="_hideTip()">
         <div class="event-title">${titleHtml}</div>
@@ -1113,7 +1124,7 @@ function render() {
           ev.stopPropagation();
           if(_drag) return;
           _hideTip();
-          window.open(`clickup://t/${t.id}`);
+          openClickUpTask(t.id);
         });
 
         evDiv.addEventListener("mouseenter", ev => { if(!_drag) _showTip(ev, t); });
