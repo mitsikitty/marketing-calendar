@@ -89,6 +89,14 @@ function tsToDate(ms: number): string {
   return d.toISOString().split("T")[0];
 }
 
+// When writing a YYYY-MM-DD string back to ClickUp we must match ClickUp's
+// storage format (midnight UTC of the *next* day) so tsToDate round-trips correctly.
+function dateStrToClickUpMs(dateStr: string): number {
+  const d = new Date(dateStr + "T00:00:00.000Z");
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.getTime();
+}
+
 function resolvePublishDate(fields: any[]): string | null {
   const f = fields?.find((f: any) => f.name === "Publish Date");
   if (!f || !f.value) return null;
@@ -232,8 +240,8 @@ export default async (req: Request, context: Context) => {
       if (status      !== undefined) payload.status      = status;
       if (name        !== undefined) payload.name        = name;
       if (description !== undefined) payload.description = description;
-      if (startDate !== undefined) payload.start_date = startDate ? new Date(startDate).getTime() : null;
-      if (dueDate   !== undefined) payload.due_date   = dueDate   ? new Date(dueDate).getTime()   : null;
+      if (startDate !== undefined) payload.start_date = startDate ? dateStrToClickUpMs(startDate) : null;
+      if (dueDate   !== undefined) payload.due_date   = dueDate   ? dateStrToClickUpMs(dueDate)   : null;
       const res = await fetch(`${BASE}/task/${taskId}`, {
         method: "PUT",
         headers: { Authorization: CLICKUP_TOKEN, "Content-Type": "application/json" },
@@ -250,7 +258,7 @@ export default async (req: Request, context: Context) => {
             await fetch(`${BASE}/task/${taskId}/field/${publishDateFieldId}`, {
               method: "POST",
               headers: { Authorization: CLICKUP_TOKEN, "Content-Type": "application/json" },
-              body: JSON.stringify({ value: new Date(publishDate).getTime() }),
+              body: JSON.stringify({ value: dateStrToClickUpMs(publishDate) }),
             });
           } else {
             await fetch(`${BASE}/task/${taskId}/field/${publishDateFieldId}`, {
@@ -274,8 +282,8 @@ export default async (req: Request, context: Context) => {
       const payload: any = {
         name:          body.title,
         status:        "planning",
-        start_date:    body.start ? new Date(body.start).getTime() : undefined,
-        due_date:      body.end   ? new Date(body.end).getTime() : (body.start ? new Date(body.start).getTime() : undefined),
+        start_date:    body.start ? dateStrToClickUpMs(body.start) : undefined,
+        due_date:      body.end   ? dateStrToClickUpMs(body.end)   : (body.start ? dateStrToClickUpMs(body.start) : undefined),
         custom_fields: customFields.length ? customFields : undefined,
       };
       const res = await fetch(`${BASE}/list/${listId}/task`, {
