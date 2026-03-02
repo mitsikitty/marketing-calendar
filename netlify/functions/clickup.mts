@@ -79,16 +79,26 @@ function resolveLocations(field: any): { name: string; color: string | null }[] 
   }).filter((x: any) => x.name);
 }
 
+// ClickUp stores date-only timestamps as midnight UTC of the *next* day.
+// Subtract 1ms so "March 2 00:00:00 UTC" correctly maps back to "2025-03-01".
+function tsToDate(ms: number): string {
+  const d = new Date(ms);
+  if (d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0 && d.getUTCMilliseconds() === 0) {
+    d.setTime(d.getTime() - 1);
+  }
+  return d.toISOString().split("T")[0];
+}
+
 function resolvePublishDate(fields: any[]): string | null {
   const f = fields?.find((f: any) => f.name === "Publish Date");
   if (!f || !f.value) return null;
-  return new Date(Number(f.value)).toISOString().split("T")[0];
+  return tsToDate(Number(f.value));
 }
 
 function resolveEndDate(fields: any[]): string | null {
   const f = fields?.find((f: any) => f.name === "End date");
   if (!f || !f.value) return null;
-  return new Date(Number(f.value)).toISOString().split("T")[0];
+  return tsToDate(Number(f.value));
 }
 
 function resolveParentCampaign(fields: any[]): string | null {
@@ -147,9 +157,9 @@ export default async (req: Request, context: Context) => {
 
             // Use publish date as the display date for content; fall back to due_date
             const displayDate = publishDate
-              || (t.due_date ? new Date(Number(t.due_date)).toISOString().split("T")[0] : null);
+              || (t.due_date ? tsToDate(Number(t.due_date)) : null);
             const startDate = t.start_date
-              ? new Date(Number(t.start_date)).toISOString().split("T")[0]
+              ? tsToDate(Number(t.start_date))
               : displayDate;
 
             return {
@@ -157,7 +167,7 @@ export default async (req: Request, context: Context) => {
               title:       t.name,
               layer,
               start:       startDate,
-              end:         endDate || (t.due_date ? new Date(Number(t.due_date)).toISOString().split("T")[0] : startDate),
+              end:         endDate || (t.due_date ? tsToDate(Number(t.due_date)) : startDate),
               publishDate,
               status:      t.status?.status || "",
               url:         t.url,
@@ -202,8 +212,8 @@ export default async (req: Request, context: Context) => {
         status:       t.status?.status || "",
         statusColor:  t.status?.color || "#6b7280",
         url:          t.url,
-        startDate:    t.start_date ? new Date(Number(t.start_date)).toISOString().split("T")[0] : null,
-        dueDate:      t.due_date   ? new Date(Number(t.due_date)).toISOString().split("T")[0]   : null,
+        startDate:    t.start_date ? tsToDate(Number(t.start_date)) : null,
+        dueDate:      t.due_date   ? tsToDate(Number(t.due_date))   : null,
         assignees:    (t.assignees || []).map((a: any) => ({ id: a.id, name: a.username, avatar: a.profilePicture })),
         customFields: (t.custom_fields || []).filter((f: any) => f.value !== null && f.value !== undefined && f.value !== ""),
         listName:     t.list?.name || "",

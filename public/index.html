@@ -343,7 +343,7 @@ body {
 .view-dropdown-btn .chevron { font-size:9px; opacity:.6; transition:transform .15s; }
 .view-dropdown-btn.open .chevron { transform:rotate(180deg); }
 .view-dropdown-menu {
-  position:absolute; top:calc(100% + 4px); left:0; z-index:300;
+  position:absolute; top:calc(100% + 4px); left:0; z-index:9999;
   background:var(--surface); border:1px solid var(--border);
   border-radius:6px; padding:4px; min-width:140px;
   box-shadow:0 8px 24px var(--shadow); display:none; flex-direction:column; gap:1px;
@@ -613,6 +613,15 @@ window.matchMedia("(prefers-color-scheme:dark)").addEventListener("change", () =
 applyTheme();
 
 // ── Helpers ──
+// ClickUp stores date-only timestamps as midnight UTC of the *next* day.
+// Subtract 1ms so e.g. "March 2 00:00:00 UTC" correctly maps to "2025-03-01".
+function tsToLocalDate(ms) {
+  const d = new Date(ms);
+  if(d.getUTCHours()===0 && d.getUTCMinutes()===0 && d.getUTCSeconds()===0 && d.getUTCMilliseconds()===0) {
+    d.setTime(d.getTime()-1);
+  }
+  return d.toISOString().split("T")[0];
+}
 function parseDate(s) { if(!s) return null; const [y,m,d]=s.split("-").map(Number); return new Date(y,m-1,d); }
 function isSameDay(a,b) { return a&&b&&a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate(); }
 function fmtDate(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
@@ -688,7 +697,7 @@ function _showTip(e, t) {
   const typeName = t.type?.name||(typeof t.type==="string"?t.type:"");
   const locs = (t.locations||[]).map(l=>l?.name||(typeof l==="string"?l:"")).filter(Boolean);
   let h = `<div class="tt-title">${escapeHtml(t.title)}</div>`;
-  if(t.status) h += `<div class="tt-row">● ${escapeHtml(t.status)}</div>`;
+  if(t.status) h += `<div class="tt-row">Status: ${escapeHtml(t.status)}</div>`;
   if(t.publishDate) h += `<div class="tt-row">📅 Publish: ${fmtDisp(t.publishDate)}</div>`;
   else if(t.start) {
     const dateStr = t.end&&t.end!==t.start ? `${fmtDisp(t.start)} → ${fmtDisp(t.end)}` : fmtDisp(t.start);
@@ -1045,9 +1054,13 @@ function render() {
         if(showTitle) {
           const titleDiv = document.createElement("div");
           titleDiv.className = "event-title";
-          // Title + campaign in brackets on same line
-          const campaignSuffix = t.campaign ? ` (${t.campaign})` : "";
-          titleDiv.textContent = t.title + campaignSuffix;
+          // Title + campaign in brackets on same line (skip suffix for campaign-layer tasks)
+          const campaignSuffix = (t.campaign && t.layer !== "campaigns") ? ` (${t.campaign})` : "";
+          if(campaignSuffix) {
+            titleDiv.innerHTML = escapeHtml(t.title) + `<span style="opacity:0.7"> (${escapeHtml(t.campaign)})</span>`;
+          } else {
+            titleDiv.textContent = t.title;
+          }
           evDiv.appendChild(titleDiv);
 
           const typeName = t.type?.name||(typeof t.type==="string"?t.type:"");
@@ -1165,7 +1178,7 @@ function renderLightboxDetail(detail, layer) {
 
   // Publish date
   const pubField = (detail.customFields||[]).find(f => f.name==="Publish Date");
-  const pubIso = pubField?.value ? new Date(Number(pubField.value)).toISOString().split("T")[0] : null;
+  const pubIso = pubField?.value ? tsToLocalDate(Number(pubField.value)) : null;
 
   // Assignees
   let assigneeHtml = "—";
