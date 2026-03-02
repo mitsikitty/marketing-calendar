@@ -644,14 +644,11 @@ function formatFieldValue(field) {
 let _panelDetail = null;
 let _panelUrl    = null;
 let _panelLayer  = null;
+let _lbTaskId    = null;
 
-// Navigate to the task within the current ClickUp webview window.
-// Open task in ClickUp natively. window.open() opens it in ClickUp's Electron
-// desktop app as a new window, showing the native task view.
+// Open task natively in ClickUp desktop app using the clickup:// protocol
 function openTaskUrl() {
-  const url = _panelDetail?.url || _panelUrl;
-  if(!url) return;
-  window.open(url);
+  if(_lbTaskId) window.open(`clickup://t/${_lbTaskId}`);
 }
 
 function openStatusDrop(e) {
@@ -746,7 +743,7 @@ function render() {
         evDiv.addEventListener("click", ev => {
           ev.stopPropagation();
           _hideTip();
-          if(t.url) window.open(t.url);
+          if(t.id) window.open(`clickup://t/${t.id}`);
         });
         evDiv.addEventListener("mouseenter", ev => _showTip(ev, t));
         evDiv.addEventListener("mousemove", _moveTip);
@@ -832,6 +829,7 @@ async function openPanel(task) {
   titleEl.textContent = task.title;
   _panelUrl   = task.url   || null;
   _panelLayer = task.layer || null;
+  _lbTaskId   = task.id    || null;
   content.innerHTML = `<div class="panel-loading"><div class="panel-spinner"></div><span>Loading…</span></div>`;
   panel.classList.add("open");
 
