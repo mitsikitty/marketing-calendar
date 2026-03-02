@@ -633,6 +633,7 @@ function fmtDisp(iso) {
 function escapeHtml(s) {
   return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
+function sentenceCase(s) { if(!s) return ""; return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase(); }
 function contrastColor(hex) {
   if(!hex) return "#1f2937";
   let h = hex.replace("#","");
@@ -697,7 +698,7 @@ function _showTip(e, t) {
   const typeName = t.type?.name||(typeof t.type==="string"?t.type:"");
   const locs = (t.locations||[]).map(l=>l?.name||(typeof l==="string"?l:"")).filter(Boolean);
   let h = `<div class="tt-title">${escapeHtml(t.title)}</div>`;
-  if(t.status) h += `<div class="tt-row">Status: ${escapeHtml(t.status)}</div>`;
+  if(t.status) h += `<div class="tt-row">Status: ${escapeHtml(sentenceCase(t.status))}</div>`;
   if(t.publishDate) h += `<div class="tt-row">📅 Publish: ${fmtDisp(t.publishDate)}</div>`;
   else if(t.start) {
     const dateStr = t.end&&t.end!==t.start ? `${fmtDisp(t.start)} → ${fmtDisp(t.end)}` : fmtDisp(t.start);
@@ -706,6 +707,7 @@ function _showTip(e, t) {
   if(typeName||locs.length) {
     h += `<div class="tt-pills">`;
     if(typeName) h += `<span class="pill ${typePillClass(typeName)}">${escapeHtml(typeName)}</span>`;
+    if(typeName && locs.length) h += `<span style="color:var(--text-light);font-size:10px;align-self:center;line-height:1;margin:0 2px">|</span>`;
     locs.forEach(l => h += `<span class="pill ${locPillClass(l)}">${escapeHtml(l)}</span>`);
     h += `</div>`;
   }
@@ -895,9 +897,10 @@ function renderDayView(days) {
     const isToday = isSameDay(d, today);
     const iso = fmtDate(d);
     const dayTasks = tasks.filter(t => {
-      const s = parseDate(t.start), en = parseDate(t.end)||parseDate(t.start);
-      if(!s&&!en) return false;
-      return d >= (s||en) && d <= (en||s);
+      if(!t.start) return false;
+      const dIso = fmtDate(d);
+      const tEnd = t.end || t.start;
+      return dIso >= t.start && dIso <= tEnd;
     });
     bodyHtml += `<div class="day-view-col${isToday?" today-col":""}" data-date="${iso}">`;
     dayTasks.forEach(t => {
@@ -906,7 +909,7 @@ function renderDayView(days) {
       const skipTypes = new Set(["Campaign","Always On","Selling Season"]);
       const showType = typeName && !skipTypes.has(typeName);
       bodyHtml += `<div class="event ${t.layer}" data-taskid="${t.id}" data-layer="${t.layer}"
-        onclick="openLightbox(tasks.find(x=>x.id==='${t.id}'))"
+        onclick="window.open(tasks.find(x=>x.id==='${t.id}')?.url,'_blank')"
         style="cursor:pointer">
         <div class="event-title">${escapeHtml(t.title)}</div>
         ${showType?`<div class="event-pills"><span class="pill ${typePillClass(typeName)}">${escapeHtml(typeName)}</span></div>`:""}
@@ -1037,7 +1040,7 @@ function render() {
           ev.stopPropagation();
           if(_drag) return;
           _hideTip();
-          openLightbox(t);
+          window.open(t.url, '_blank');
         });
 
         evDiv.addEventListener("mouseenter", ev => { if(!_drag) _showTip(ev, t); });
