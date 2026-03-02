@@ -150,10 +150,12 @@ export default async (req: Request, context: Context) => {
           const data = await res.json() as any;
           return (data.tasks || []).map((t: any) => {
             const cf = t.custom_fields || [];
-            const contentTypeField = cf.find((f: any) => f.name === "Content Type" && f.type === "drop_down");
-            const publishLocField  = cf.find((f: any) => f.name === "Publish Location");
-            const publishDate      = resolvePublishDate(cf);
-            const endDate          = resolveEndDate(cf);
+            const contentTypeField  = cf.find((f: any) => f.name === "Content Type" && f.type === "drop_down");
+            const publishLocField   = cf.find((f: any) => f.name === "Publish Location");
+            const publishDateField  = cf.find((f: any) => f.name === "Publish Date");
+            const publishDate       = publishDateField?.value ? tsToDate(Number(publishDateField.value)) : null;
+            const publishDateFieldId = publishDateField?.id || null;
+            const endDate           = resolveEndDate(cf);
 
             // publishDate is the primary calendar date; t.start_date is a workflow field
             // and must NOT override the publish date for display purposes.
@@ -162,13 +164,14 @@ export default async (req: Request, context: Context) => {
               || (t.due_date  ? tsToDate(Number(t.due_date))   : null);
 
             return {
-              id:          t.id,
-              title:       t.name,
+              id:               t.id,
+              title:            t.name,
               layer,
-              start:       startDate,
-              end:         endDate || publishDate || (t.due_date ? tsToDate(Number(t.due_date)) : startDate),
+              start:            startDate,
+              end:              endDate || publishDate || (t.due_date ? tsToDate(Number(t.due_date)) : startDate),
               publishDate,
-              status:      t.status?.status || "",
+              publishDateFieldId,
+              status:           t.status?.status || "",
               url:         t.url,
               assignees:   t.assignees?.map((a: any) => ({ id: a.id, name: a.username })) || [],
               type:        resolveContentType(contentTypeField),

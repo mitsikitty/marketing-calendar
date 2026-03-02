@@ -845,23 +845,37 @@ async function _onDragUp(e) {
   // No change
   if(startIso === origStart && endIso === origEnd) return;
 
-  // Optimistic update
+  // Capture original publish date before optimistic update (for rollback)
   const task = tasks.find(t => t.id === taskId);
-  if(task) { task.start = startIso; task.end = endIso; }
+  const origPublishDate = task?.publishDate || null;
+
+  // Optimistic update — also shift publishDate so the task stays in the right box
+  if(task) {
+    task.start = startIso;
+    task.end   = endIso;
+    if(task.publishDate) task.publishDate = startIso;
+  }
   render();
 
   // Persist to ClickUp
   try {
+    const updateBody = { id: taskId, startDate: startIso, dueDate: endIso };
+    // If this task is positioned by a Publish Date custom field, update that too —
+    // otherwise on reload publishDate takes priority and the task would snap back.
+    if(task?.publishDateFieldId) {
+      updateBody.publishDateFieldId = task.publishDateFieldId;
+      updateBody.publishDate = startIso;
+    }
     const res = await fetch(`${API}?action=update`, {
       method: "POST",
       headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ id: taskId, startDate: startIso, dueDate: endIso }),
+      body: JSON.stringify(updateBody),
     });
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
   } catch(err) {
     console.error("Date update failed:", err);
-    // Roll back
-    if(task) { task.start = origStart; task.end = origEnd; }
+    // Roll back everything including publishDate
+    if(task) { task.start = origStart; task.end = origEnd; if(origPublishDate) task.publishDate = origPublishDate; }
     render();
   }
 }
