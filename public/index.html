@@ -706,6 +706,7 @@ function _showTip(e, t) {
   const typeName = t.type?.name||(typeof t.type==="string"?t.type:"");
   const locObjs = (t.locations||[]).map(l => typeof l==="string" ? {name:l,color:null} : {name:l?.name||"",color:l?.color||null}).filter(x=>x.name);
   let h = `<div class="tt-title">${escapeHtml(t.title)}</div>`;
+  if(t.campaign && t.layer !== "campaigns") h += `<div class="tt-row">Campaign: ${escapeHtml(t.campaign)}</div>`;
   if(t.status) h += `<div class="tt-row">Status: ${escapeHtml(sentenceCase(t.status))}</div>`;
   if(t.publishDate) h += `<div class="tt-row">📅 Publish: ${fmtDisp(t.publishDate)}</div>`;
   else if(t.start) {
@@ -728,7 +729,6 @@ function _showTip(e, t) {
     });
     h += `</div>`;
   }
-  if(t.campaign) h += `<div class="tt-row" style="margin-top:3px;font-style:italic">↩ ${escapeHtml(t.campaign)}</div>`;
   _tt.innerHTML = h;
   _tt.classList.add("visible");
   _moveTip(e);
@@ -930,12 +930,16 @@ function renderDayView(days) {
       let si = isodays.indexOf(t.start); if(si < 0) si = 0;
       let ei = isodays.indexOf(tEnd);    if(ei < 0) ei = cols - 1;
       const gridCol = `${si+1}/${ei+2}`;
+      const spanCampaignSuffix = (t.campaign && t.layer !== "campaigns") ? ` (${t.campaign})` : "";
+      const spanTitleHtml = spanCampaignSuffix
+        ? `${escapeHtml(t.title)}<span style="opacity:0.7"> (${escapeHtml(t.campaign)})</span>`
+        : escapeHtml(t.title);
       spanHtml += `<div class="event ${t.layer} span-start span-end" data-taskid="${t.id}"
         style="grid-column:${gridCol};cursor:pointer;margin:1px 2px"
         onclick="window.open('clickup://t/${t.id}')"
         onmouseenter="_showTip(event,tasks.find(x=>x.id==='${t.id}'))"
         onmousemove="_moveTip(event)" onmouseleave="_hideTip()">
-        <div class="event-title">${escapeHtml(t.title)}</div>
+        <div class="event-title">${spanTitleHtml}</div>
       </div>`;
     });
     spanHtml += `</div>`;
@@ -956,12 +960,16 @@ function renderDayView(days) {
       const pillHtml = showType
         ? `<div class="event-pills"><span class="pill${tc?"":" "+typePillClass(typeName)}"${tc?` style="background:${tc};color:${contrastColor(tc)}"`:""}>${escapeHtml(typeName)}</span></div>`
         : "";
+      const campaignSuffix = (t.campaign && t.layer !== "campaigns") ? ` (${t.campaign})` : "";
+      const titleHtml = campaignSuffix
+        ? `${escapeHtml(t.title)}<span style="opacity:0.7"> (${escapeHtml(t.campaign)})</span>`
+        : escapeHtml(t.title);
       bodyHtml += `<div class="event ${t.layer}" data-taskid="${t.id}" data-layer="${t.layer}"
         style="cursor:pointer"
         onclick="window.open('clickup://t/${t.id}')"
         onmouseenter="_showTip(event,tasks.find(x=>x.id==='${t.id}'))"
         onmousemove="_moveTip(event)" onmouseleave="_hideTip()">
-        <div class="event-title">${escapeHtml(t.title)}</div>
+        <div class="event-title">${titleHtml}</div>
         ${pillHtml}
       </div>`;
     });
