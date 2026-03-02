@@ -909,7 +909,7 @@ function renderDayView(days) {
       const skipTypes = new Set(["Campaign","Always On","Selling Season"]);
       const showType = typeName && !skipTypes.has(typeName);
       bodyHtml += `<div class="event ${t.layer}" data-taskid="${t.id}" data-layer="${t.layer}"
-        onclick="window.open(tasks.find(x=>x.id==='${t.id}')?.url,'_blank')"
+        onclick="window.open('clickup://t/${t.id}')"
         style="cursor:pointer">
         <div class="event-title">${escapeHtml(t.title)}</div>
         ${showType?`<div class="event-pills"><span class="pill ${typePillClass(typeName)}">${escapeHtml(typeName)}</span></div>`:""}
@@ -1040,7 +1040,7 @@ function render() {
           ev.stopPropagation();
           if(_drag) return;
           _hideTip();
-          window.open(t.url, '_blank');
+          window.open(`clickup://t/${t.id}`);
         });
 
         evDiv.addEventListener("mouseenter", ev => { if(!_drag) _showTip(ev, t); });
