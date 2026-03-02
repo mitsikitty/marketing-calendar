@@ -155,19 +155,18 @@ export default async (req: Request, context: Context) => {
             const publishDate      = resolvePublishDate(cf);
             const endDate          = resolveEndDate(cf);
 
-            // Use publish date as the display date for content; fall back to due_date
-            const displayDate = publishDate
-              || (t.due_date ? tsToDate(Number(t.due_date)) : null);
-            const startDate = t.start_date
-              ? tsToDate(Number(t.start_date))
-              : displayDate;
+            // publishDate is the primary calendar date; t.start_date is a workflow field
+            // and must NOT override the publish date for display purposes.
+            const startDate = publishDate
+              || (t.start_date ? tsToDate(Number(t.start_date)) : null)
+              || (t.due_date  ? tsToDate(Number(t.due_date))   : null);
 
             return {
               id:          t.id,
               title:       t.name,
               layer,
               start:       startDate,
-              end:         endDate || (t.due_date ? tsToDate(Number(t.due_date)) : startDate),
+              end:         endDate || publishDate || (t.due_date ? tsToDate(Number(t.due_date)) : startDate),
               publishDate,
               status:      t.status?.status || "",
               url:         t.url,
