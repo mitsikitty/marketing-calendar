@@ -252,21 +252,22 @@ export default async (req: Request, context: Context) => {
         return new Response(JSON.stringify({ error: err.err || "Update failed" }), { status: res.status, headers });
       }
       // Update Publish Date custom field if provided
-      if (publishDateFieldId !== undefined) {
-        try {
-          if (publishDate) {
-            await fetch(`${BASE}/task/${taskId}/field/${publishDateFieldId}`, {
+      if (publishDateFieldId) {
+        const fieldRes = publishDate
+          ? await fetch(`${BASE}/task/${taskId}/field/${publishDateFieldId}`, {
               method: "POST",
               headers: { Authorization: CLICKUP_TOKEN, "Content-Type": "application/json" },
               body: JSON.stringify({ value: dateStrToClickUpMs(publishDate) }),
-            });
-          } else {
-            await fetch(`${BASE}/task/${taskId}/field/${publishDateFieldId}`, {
+            })
+          : await fetch(`${BASE}/task/${taskId}/field/${publishDateFieldId}`, {
               method: "DELETE",
               headers: { Authorization: CLICKUP_TOKEN },
             });
-          }
-        } catch { /* best-effort */ }
+        if (!fieldRes.ok) {
+          const errText = await fieldRes.text();
+          console.error(`Publish Date field update failed for task ${taskId}:`, errText);
+          return new Response(JSON.stringify({ error: "Publish Date field update failed", detail: errText }), { status: 500, headers });
+        }
       }
       return new Response(JSON.stringify({ ok: true }), { headers });
     }

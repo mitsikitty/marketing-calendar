@@ -605,12 +605,9 @@ const layerVis = { campaigns:true, content:true, alwayson:true, paid:true, holid
 // Uses a hidden <a> element so the protocol handler fires without navigating
 // the current page (important when the calendar is embedded in an iframe).
 function openClickUpTask(id) {
-  const a = document.createElement("a");
-  a.href = `clickup://t/${id}`;
-  a.style.display = "none";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  // window.open with _blank: for custom protocol URLs the OS launches the app
+  // without actually navigating the current page or opening a new tab.
+  window.open(`clickup://t/${id}`, '_blank');
 }
 
 let _lbTaskId = null;
@@ -856,23 +853,23 @@ async function _onDragUp(e) {
   // No change
   if(startIso === origStart && endIso === origEnd) return;
 
-  // Capture original publish date before optimistic update (for rollback)
+  // Capture original state before optimistic update (for rollback)
   const task = tasks.find(t => t.id === taskId);
-  const origPublishDate = task?.publishDate || null;
+  const origPublishDate = task?.publishDate ?? null;
 
-  // Optimistic update — also shift publishDate so the task stays in the right box
+  // Optimistic update — shift publishDate whenever the field exists on this task,
+  // even if it was previously empty, so the card stays in the correct column.
   if(task) {
     task.start = startIso;
     task.end   = endIso;
-    if(task.publishDate) task.publishDate = startIso;
+    if(task.publishDateFieldId) task.publishDate = startIso;
   }
   render();
 
   // Persist to ClickUp
   try {
     const updateBody = { id: taskId, startDate: startIso, dueDate: endIso };
-    // If this task is positioned by a Publish Date custom field, update that too —
-    // otherwise on reload publishDate takes priority and the task would snap back.
+    // Always update the Publish Date custom field when the field exists on this task.
     if(task?.publishDateFieldId) {
       updateBody.publishDateFieldId = task.publishDateFieldId;
       updateBody.publishDate = startIso;
@@ -885,8 +882,12 @@ async function _onDragUp(e) {
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
   } catch(err) {
     console.error("Date update failed:", err);
-    // Roll back everything including publishDate
-    if(task) { task.start = origStart; task.end = origEnd; if(origPublishDate) task.publishDate = origPublishDate; }
+    // Roll back dates and publishDate to original values
+    if(task) {
+      task.start = origStart;
+      task.end   = origEnd;
+      if(task.publishDateFieldId) task.publishDate = origPublishDate;
+    }
     render();
   }
 }
