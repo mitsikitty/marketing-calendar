@@ -543,9 +543,9 @@ body {
     </div>
     <div class="field">
       <label>List</label>
-      <select id="f-layer">
-        <option value="content">Campaign Content</option>
+      <select id="f-layer" onchange="_onLayerChange()">
         <option value="campaigns">Campaigns</option>
+        <option value="content">Campaign Content</option>
         <option value="alwayson">Always On</option>
         <option value="paid">Paid Ads</option>
         <option value="holidays">Holidays &amp; Events</option>
@@ -581,9 +581,13 @@ body {
         </select>
       </div>
     </div>
-    <div class="field-row">
+    <div class="field-row" id="ct-date-range">
       <div class="field"><label>Start Date</label><input type="date" id="f-start" /></div>
       <div class="field"><label>End Date</label><input type="date" id="f-end" /></div>
+    </div>
+    <div class="field" id="ct-date-publish" style="display:none">
+      <label>Publish Date</label>
+      <input type="date" id="f-publish" />
     </div>
     <div class="ct-footer">
       <button class="btn" onclick="closeCreate()">Cancel</button>
@@ -1483,13 +1487,24 @@ function formatFieldValue(field) {
 }
 
 // ── Create task ──
+function _usePublishDate() {
+  const v = document.getElementById("f-layer").value;
+  return v === "content" || v === "alwayson";
+}
+function _onLayerChange() {
+  const pub = _usePublishDate();
+  document.getElementById("ct-date-range").style.display   = pub ? "none" : "";
+  document.getElementById("ct-date-publish").style.display = pub ? ""     : "none";
+}
 function openCreate(date) {
   const d = fmtDate(date);
-  document.getElementById("f-start").value = d;
-  document.getElementById("f-end").value = d;
+  document.getElementById("f-start").value   = d;
+  document.getElementById("f-end").value     = d;
+  document.getElementById("f-publish").value = d;
   document.getElementById("f-title").value = "";
   document.getElementById("f-type").value = "";
   document.getElementById("f-hemisphere").value = "";
+  _onLayerChange();
   document.getElementById("ctOverlay").classList.add("open");
   setTimeout(()=>document.getElementById("f-title").focus(), 120);
 }
@@ -1503,20 +1518,23 @@ async function createTask() {
   if(!contentType) { document.getElementById("f-type").focus(); return; }
   const hemisphere = document.getElementById("f-hemisphere").value;
   if(!hemisphere) { document.getElementById("f-hemisphere").focus(); return; }
+  const layer = document.getElementById("f-layer").value;
+  const pub = _usePublishDate();
+  const publishDate = pub ? document.getElementById("f-publish").value : null;
+  const start = pub ? publishDate : document.getElementById("f-start").value;
+  const end   = pub ? publishDate : document.getElementById("f-end").value;
   const btn = document.getElementById("createBtn");
   btn.textContent = "Creating…"; btn.disabled = true;
   try {
     const res = await fetch(`${API}?action=create`, {
       method:"POST", headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({ title, layer:document.getElementById("f-layer").value,
-        start:document.getElementById("f-start").value, end:document.getElementById("f-end").value,
-        contentType, hemisphere })
+      body:JSON.stringify({ title, layer, start, end, publishDate, contentType, hemisphere })
     });
     const data = await res.json();
     closeCreate();
     await loadTasks();
     if(data.id) {
-      const newTask = tasks.find(t=>t.id===data.id)||{id:data.id,title,url:data.url,layer:document.getElementById("f-layer").value};
+      const newTask = tasks.find(t=>t.id===data.id)||{id:data.id,title,url:data.url,layer};
       openLightbox(newTask);
     }
   } catch(e) { alert("Error: "+e.message); }

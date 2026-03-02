@@ -293,21 +293,44 @@ export default async (req: Request, context: Context) => {
         body: JSON.stringify(payload),
       });
       const task = await res.json() as any;
-      // Set hemisphere via field endpoint (dynamic field ID lookup)
-      if (body.hemisphere !== undefined && body.hemisphere !== "" && task.id) {
-        try {
-          const fr = await fetch(`${BASE}/list/${listId}/field`, { headers: { Authorization: CLICKUP_TOKEN } });
-          const fd = await fr.json() as any;
-          const hf = (fd.fields || []).find((f: any) => f.name?.toLowerCase().includes("hemisphere"));
-          if (hf?.id) {
+      if (!task.id) return new Response(JSON.stringify({ error: task.err || "Create failed" }), { status: 500, headers });
+
+      // Lookup list custom fields once (used for both hemisphere and Publish Date)
+      let listFields: any[] = [];
+      try {
+        const fr = await fetch(`${BASE}/list/${listId}/field`, { headers: { Authorization: CLICKUP_TOKEN } });
+        const fd = await fr.json() as any;
+        listFields = fd.fields || [];
+      } catch { /* best-effort */ }
+
+      // Set Publish Date custom field when a publishDate is provided
+      if (body.publishDate && listFields.length) {
+        const pdf = listFields.find((f: any) => f.name === "Publish Date");
+        if (pdf?.id) {
+          try {
+            await fetch(`${BASE}/task/${task.id}/field/${pdf.id}`, {
+              method: "POST",
+              headers: { Authorization: CLICKUP_TOKEN, "Content-Type": "application/json" },
+              body: JSON.stringify({ value: dateStrToClickUpMs(body.publishDate) }),
+            });
+          } catch { /* best-effort */ }
+        }
+      }
+
+      // Set hemisphere via field endpoint
+      if (body.hemisphere !== undefined && body.hemisphere !== "") {
+        const hf = listFields.find((f: any) => f.name?.toLowerCase().includes("hemisphere"));
+        if (hf?.id) {
+          try {
             await fetch(`${BASE}/task/${task.id}/field/${hf.id}`, {
               method: "POST",
               headers: { Authorization: CLICKUP_TOKEN, "Content-Type": "application/json" },
               body: JSON.stringify({ value: Number(body.hemisphere) }),
             });
-          }
-        } catch { /* best-effort */ }
+          } catch { /* best-effort */ }
+        }
       }
+
       return new Response(JSON.stringify({ id: task.id, url: task.url }), { headers });
     }
 
