@@ -971,7 +971,7 @@ function renderDayView(days) {
         ? `${escapeHtml(t.title)}<span style="opacity:0.7"> (${escapeHtml(t.campaign)})</span>`
         : escapeHtml(t.title);
       spanHtml += `<div class="event ${t.layer} span-start span-end" data-taskid="${t.id}"
-        style="grid-column:${gridCol};cursor:pointer;margin:1px 2px"
+        style="grid-column:${gridCol};cursor:pointer;margin:1px 2px${_isPastTask(t)?';opacity:0.5':''}"
         onclick="openClickUpTask('${t.id}')"
         onmouseenter="_showTip(event,tasks.find(x=>x.id==='${t.id}'))"
         onmousemove="_moveTip(event)" onmouseleave="_hideTip()">
@@ -1001,7 +1001,7 @@ function renderDayView(days) {
         ? `${escapeHtml(t.title)}<span style="opacity:0.7"> (${escapeHtml(t.campaign)})</span>`
         : escapeHtml(t.title);
       bodyHtml += `<div class="event ${t.layer}" data-taskid="${t.id}" data-layer="${t.layer}"
-        style="cursor:pointer"
+        style="cursor:pointer${_isPastTask(t)?';opacity:0.5':''}"
         onclick="openClickUpTask('${t.id}')"
         onmouseenter="_showTip(event,tasks.find(x=>x.id==='${t.id}'))"
         onmousemove="_moveTip(event)" onmouseleave="_hideTip()">
@@ -1130,6 +1130,7 @@ function render() {
         evDiv.setAttribute("data-layer", t.layer);
         evDiv.setAttribute("data-taskid", t.id);
         if(!layerVis[t.layer]) evDiv.classList.add("hidden");
+        if(_isPastTask(t)) evDiv.style.opacity = "0.5";
 
         evDiv.addEventListener("click", ev => {
           ev.stopPropagation();
@@ -1490,6 +1491,13 @@ function formatFieldValue(field) {
     }
     default: return null;
   }
+}
+
+// ── Past-task helper (end or start is before today) ──
+function _isPastTask(t) {
+  const endIso = t.end || t.start;
+  if (!endIso) return false;
+  return endIso < fmtDate(new Date());
 }
 
 // ── Create task ──

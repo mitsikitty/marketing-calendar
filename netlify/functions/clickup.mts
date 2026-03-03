@@ -152,7 +152,7 @@ export default async (req: Request, context: Context) => {
       const results = await Promise.all(
         Object.entries(LISTS).map(async ([layer, listId]) => {
           const res = await fetch(
-            `${BASE}/list/${listId}/task?include_closed=false&subtasks=false`,
+            `${BASE}/list/${listId}/task?include_closed=true&subtasks=false`,
             { headers: { Authorization: CLICKUP_TOKEN } }
           );
           const data = await res.json() as any;
