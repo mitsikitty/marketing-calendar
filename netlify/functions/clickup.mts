@@ -343,7 +343,7 @@ export default async (req: Request, context: Context) => {
 
       // Set Region Specific field for holidays
       if (body.regionSpecific) {
-        const rsf = listFields.find((f: any) => f.name === "Region Specific");
+        const rsf = listFields.find((f: any) => f.name === "Region Specific?");
         if (rsf?.id) {
           try {
             await fetch(`${BASE}/task/${task.id}/field/${rsf.id}`, {

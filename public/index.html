@@ -1499,7 +1499,7 @@ async function _loadRegionOptions() {
   try {
     const res = await fetch(`${API}?action=listfields&list=holidays`);
     const fields = await res.json();
-    const field = fields.find(f => f.name === "Region Specific");
+    const field = fields.find(f => f.name === "Region Specific?");
     _regionFieldsCache = field?.type_config?.options || [];
   } catch { _regionFieldsCache = []; }
   return _regionFieldsCache;
