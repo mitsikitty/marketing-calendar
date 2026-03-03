@@ -66,19 +66,13 @@ body {
   border-radius:20px; border:1.5px solid transparent; cursor:pointer;
   font-size:11px; font-weight:500; font-family:inherit; transition:all .12s; user-select:none; white-space:nowrap;
 }
-.layer-toggle .dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.layer-toggle .dot { width:13px; height:13px; flex-shrink:0; }
 .layer-toggle[data-layer="campaigns"]{ background:var(--campaigns-bg); color:var(--campaigns-text); border-color:var(--campaigns); }
-.layer-toggle[data-layer="campaigns"] .dot { background:var(--campaigns); }
 .layer-toggle[data-layer="content"]  { background:var(--content-bg);   color:var(--content-text);   border-color:var(--content); }
-.layer-toggle[data-layer="content"]  .dot { background:var(--content); }
 .layer-toggle[data-layer="alwayson"] { background:var(--alwayson-bg);  color:var(--alwayson-text);  border-color:var(--alwayson); }
-.layer-toggle[data-layer="alwayson"] .dot { background:var(--alwayson); }
 .layer-toggle[data-layer="paid"]     { background:var(--paid-bg);      color:var(--paid-text);      border-color:var(--paid); }
-.layer-toggle[data-layer="paid"]     .dot { background:var(--paid); }
 .layer-toggle[data-layer="holidays"] { background:var(--holidays-bg);  color:var(--holidays-text);  border-color:var(--holidays); }
-.layer-toggle[data-layer="holidays"] .dot { background:var(--holidays); }
 .layer-toggle.off { background:transparent!important; color:var(--text-muted)!important; border-color:var(--border)!important; }
-.layer-toggle.off .dot { background:var(--text-light)!important; }
 
 /* ── Calendar ── */
 .main { flex:1; display:flex; overflow:hidden; position:relative; }
@@ -476,11 +470,26 @@ body {
   <div class="topbar-sep"></div>
   <div class="layers">
     <span class="layers-label">Lists</span>
-    <button class="layer-toggle" data-layer="campaigns"><span class="dot"></span>Campaigns</button>
-    <button class="layer-toggle" data-layer="content"><span class="dot"></span>Content</button>
-    <button class="layer-toggle" data-layer="alwayson"><span class="dot"></span>Always On</button>
-    <button class="layer-toggle" data-layer="paid"><span class="dot"></span>Paid Ads</button>
-    <button class="layer-toggle" data-layer="holidays"><span class="dot"></span>Holidays</button>
+    <button class="layer-toggle" data-layer="campaigns">
+      <svg class="dot" viewBox="0 0 24 24" fill="currentColor"><path d="M16 3L6 7H2v10h4l10 4V3zm2 0v2c2.21.45 4 2.24 4 4.5S20.21 13.55 18 14v2c3.28-.45 6-3.1 6-5.5S21.28 3.45 18 3zM4 9h2v6H4V9z"/></svg>
+      Campaigns
+    </button>
+    <button class="layer-toggle" data-layer="content">
+      <svg class="dot" viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35A7.96 7.96 0 0012 4c-4.42 0-8 3.58-8 8s3.58 8 8 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+      Campaign Content
+    </button>
+    <button class="layer-toggle" data-layer="alwayson">
+      <svg class="dot" viewBox="0 0 24 24" fill="currentColor"><path d="M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42A6.92 6.92 0 0119 12c0 3.87-3.13 7-7 7A7 7 0 015 12c0-2.28 1.09-4.3 2.58-5.42L6.17 5.17A9 9 0 003 12a9 9 0 0018 0c0-3.31-1.8-6.17-4.17-7.83z"/></svg>
+      Always On Content
+    </button>
+    <button class="layer-toggle" data-layer="paid">
+      <svg class="dot" viewBox="0 0 24 24" fill="currentColor"><path d="M21.41 11.58l-9-9A2 2 0 0011 2H4a2 2 0 00-2 2v7a2 2 0 00.59 1.42l9 9A2 2 0 0013 22a2 2 0 001.41-.59l7-7A2 2 0 0022 13a2 2 0 00-.59-1.42zM5.5 7a1.5 1.5 0 110-3 1.5 1.5 0 010 3z"/></svg>
+      Paid Ads
+    </button>
+    <button class="layer-toggle" data-layer="holidays">
+      <svg class="dot" viewBox="0 0 24 24" fill="currentColor"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
+      Holidays &amp; Events
+    </button>
   </div>
   <div style="flex:1"></div>
   <button class="btn-new-task" onclick="openCreate(new Date())">
