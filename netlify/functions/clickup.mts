@@ -231,6 +231,16 @@ export default async (req: Request, context: Context) => {
       }), { headers });
     }
 
+    // ── GET list field definitions ──
+    if (action === "listfields") {
+      const list = url.searchParams.get("list") || "";
+      const listId = LISTS[list as keyof typeof LISTS];
+      if (!listId) return new Response(JSON.stringify([]), { headers });
+      const res = await fetch(`${BASE}/list/${listId}/field`, { headers: { Authorization: CLICKUP_TOKEN } });
+      const data = await res.json() as any;
+      return new Response(JSON.stringify(data.fields || []), { headers });
+    }
+
     // ── POST update task ──
     if (action === "update" && req.method === "POST") {
       const body = await req.json() as any;
@@ -318,7 +328,7 @@ export default async (req: Request, context: Context) => {
       }
 
       // Set hemisphere via field endpoint
-      if (body.hemisphere !== undefined && body.hemisphere !== "") {
+      if (body.hemisphere !== undefined && body.hemisphere !== "" && body.hemisphere !== null) {
         const hf = listFields.find((f: any) => f.name?.toLowerCase().includes("hemisphere"));
         if (hf?.id) {
           try {
@@ -326,6 +336,20 @@ export default async (req: Request, context: Context) => {
               method: "POST",
               headers: { Authorization: CLICKUP_TOKEN, "Content-Type": "application/json" },
               body: JSON.stringify({ value: Number(body.hemisphere) }),
+            });
+          } catch { /* best-effort */ }
+        }
+      }
+
+      // Set Region Specific field for holidays
+      if (body.regionSpecific) {
+        const rsf = listFields.find((f: any) => f.name === "Region Specific");
+        if (rsf?.id) {
+          try {
+            await fetch(`${BASE}/task/${task.id}/field/${rsf.id}`, {
+              method: "POST",
+              headers: { Authorization: CLICKUP_TOKEN, "Content-Type": "application/json" },
+              body: JSON.stringify({ value: body.regionSpecific }),
             });
           } catch { /* best-effort */ }
         }

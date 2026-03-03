@@ -551,6 +551,7 @@ body {
         <option value="holidays">Holidays &amp; Events</option>
       </select>
     </div>
+    <div id="ct-type-hem-row">
     <div class="field-row">
       <div class="field">
         <label>Content Type <span style="color:#ef4444">*</span></label>
@@ -580,6 +581,11 @@ body {
           <option value="2">Northern</option>
         </select>
       </div>
+    </div>
+    </div>
+    <div class="field" id="ct-region" style="display:none">
+      <label>Region Specific</label>
+      <select id="f-region"><option value="">— select —</option></select>
     </div>
     <div class="field-row" id="ct-date-range">
       <div class="field"><label>Start Date</label><input type="date" id="f-start" /></div>
@@ -1487,14 +1493,41 @@ function formatFieldValue(field) {
 }
 
 // ── Create task ──
+let _regionFieldsCache = null;
+async function _loadRegionOptions() {
+  if (_regionFieldsCache) return _regionFieldsCache;
+  try {
+    const res = await fetch(`${API}?action=listfields&list=holidays`);
+    const fields = await res.json();
+    const field = fields.find(f => f.name === "Region Specific");
+    _regionFieldsCache = field?.type_config?.options || [];
+  } catch { _regionFieldsCache = []; }
+  return _regionFieldsCache;
+}
 function _usePublishDate() {
   const v = document.getElementById("f-layer").value;
   return v === "content" || v === "alwayson";
 }
 function _onLayerChange() {
+  const v = document.getElementById("f-layer").value;
   const pub = _usePublishDate();
+  const isHoliday = v === "holidays";
   document.getElementById("ct-date-range").style.display   = pub ? "none" : "";
   document.getElementById("ct-date-publish").style.display = pub ? ""     : "none";
+  document.getElementById("ct-type-hem-row").style.display = isHoliday ? "none" : "";
+  document.getElementById("ct-region").style.display       = isHoliday ? ""     : "none";
+  if (isHoliday) {
+    _loadRegionOptions().then(opts => {
+      const sel = document.getElementById("f-region");
+      sel.innerHTML = '<option value="">— select —</option>';
+      opts.forEach(o => {
+        const opt = document.createElement("option");
+        opt.value = o.id;
+        opt.textContent = o.name;
+        sel.appendChild(opt);
+      });
+    });
+  }
 }
 function openCreate(date) {
   const d = fmtDate(date);
@@ -1504,6 +1537,7 @@ function openCreate(date) {
   document.getElementById("f-title").value = "";
   document.getElementById("f-type").value = "";
   document.getElementById("f-hemisphere").value = "";
+  document.getElementById("f-region").value = "";
   _onLayerChange();
   document.getElementById("ctOverlay").classList.add("open");
   setTimeout(()=>document.getElementById("f-title").focus(), 120);
@@ -1514,11 +1548,17 @@ document.getElementById("ctOverlay").addEventListener("click", e => { if(e.targe
 async function createTask() {
   const title = document.getElementById("f-title").value.trim();
   if(!title) { document.getElementById("f-title").focus(); return; }
-  const contentType = document.getElementById("f-type").value;
-  if(!contentType) { document.getElementById("f-type").focus(); return; }
-  const hemisphere = document.getElementById("f-hemisphere").value;
-  if(!hemisphere) { document.getElementById("f-hemisphere").focus(); return; }
   const layer = document.getElementById("f-layer").value;
+  const isHoliday = layer === "holidays";
+  let contentType = null, hemisphere = null, regionSpecific = null;
+  if (isHoliday) {
+    regionSpecific = document.getElementById("f-region").value || null;
+  } else {
+    contentType = document.getElementById("f-type").value;
+    if(!contentType) { document.getElementById("f-type").focus(); return; }
+    hemisphere = document.getElementById("f-hemisphere").value;
+    if(!hemisphere) { document.getElementById("f-hemisphere").focus(); return; }
+  }
   const pub = _usePublishDate();
   const publishDate = pub ? document.getElementById("f-publish").value : null;
   const start = pub ? publishDate : document.getElementById("f-start").value;
@@ -1528,7 +1568,7 @@ async function createTask() {
   try {
     const res = await fetch(`${API}?action=create`, {
       method:"POST", headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({ title, layer, start, end, publishDate, contentType, hemisphere })
+      body:JSON.stringify({ title, layer, start, end, publishDate, contentType, hemisphere, regionSpecific })
     });
     const data = await res.json();
     closeCreate();
