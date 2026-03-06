@@ -79,13 +79,17 @@ function resolveLocations(field: any): { name: string; color: string | null }[] 
   }).filter((x: any) => x.name);
 }
 
-// ClickUp stores date-only values as midnight UTC of the given day.
-// e.g. "2026-03-06" → 2026-03-06T00:00:00.000Z
+// ClickUp stores date-only fields as midnight in the user's local timezone.
+// For AEDT (UTC+11) that's 13:00 UTC the *previous* calendar day.
+// Adding 12 hours before extracting the UTC date correctly maps any timezone
+// from UTC-12 to UTC+12 back to the intended calendar date.
 function tsToDate(ms: number): string {
-  return new Date(ms).toISOString().split("T")[0];
+  return new Date(ms + 12 * 60 * 60 * 1000).toISOString().split("T")[0];
 }
 
-// Convert a YYYY-MM-DD string to the midnight-UTC timestamp ClickUp expects.
+// Write a YYYY-MM-DD string as midnight UTC. ClickUp will display the correct
+// local date because local-midnight timestamps all fall within the same calendar
+// day after the +12h read correction above.
 function dateStrToClickUpMs(dateStr: string): number {
   return new Date(dateStr + "T00:00:00.000Z").getTime();
 }
