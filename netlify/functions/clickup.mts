@@ -79,22 +79,15 @@ function resolveLocations(field: any): { name: string; color: string | null }[] 
   }).filter((x: any) => x.name);
 }
 
-// ClickUp stores date-only timestamps as midnight UTC of the *next* day.
-// Subtract 1ms so "March 2 00:00:00 UTC" correctly maps back to "2025-03-01".
+// ClickUp stores date-only values as midnight UTC of the given day.
+// e.g. "2026-03-06" → 2026-03-06T00:00:00.000Z
 function tsToDate(ms: number): string {
-  const d = new Date(ms);
-  if (d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0 && d.getUTCMilliseconds() === 0) {
-    d.setTime(d.getTime() - 1);
-  }
-  return d.toISOString().split("T")[0];
+  return new Date(ms).toISOString().split("T")[0];
 }
 
-// When writing a YYYY-MM-DD string back to ClickUp we must match ClickUp's
-// storage format (midnight UTC of the *next* day) so tsToDate round-trips correctly.
+// Convert a YYYY-MM-DD string to the midnight-UTC timestamp ClickUp expects.
 function dateStrToClickUpMs(dateStr: string): number {
-  const d = new Date(dateStr + "T00:00:00.000Z");
-  d.setUTCDate(d.getUTCDate() + 1);
-  return d.getTime();
+  return new Date(dateStr + "T00:00:00.000Z").getTime();
 }
 
 function resolvePublishDate(fields: any[]): string | null {
