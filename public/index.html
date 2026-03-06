@@ -135,10 +135,10 @@ body {
   padding-right:48px;
 }
 .event-status {
-  position:absolute; top:2px; right:5px;
-  font-size:8px; font-weight:600; opacity:0.65;
-  text-transform:capitalize; white-space:nowrap;
-  line-height:1.4; pointer-events:none;
+  position:absolute; top:2px; right:4px;
+  font-size:7.5px; font-weight:700; letter-spacing:0.02em;
+  text-transform:capitalize; white-space:nowrap; pointer-events:none;
+  padding:1px 4px; border-radius:3px; line-height:1.5;
 }
 .event-pills { display:flex; gap:2px; flex-wrap:wrap; margin-top:2px; }
 
@@ -991,7 +991,7 @@ function renderDayView(days) {
         onclick="openClickUpTask('${t.id}')"
         onmouseenter="_showTip(event,tasks.find(x=>x.id==='${t.id}'))"
         onmousemove="_moveTip(event)" onmouseleave="_hideTip()">
-        ${t.status ? `<span class="event-status">${escapeHtml(sentenceCase(t.status))}</span>` : ''}
+        ${(t.status && t.layer !== "campaigns" && t.layer !== "holidays") ? `<span class="event-status" style="background:${t.statusColor||'#6b7280'};color:${contrastColor(t.statusColor||'#6b7280')}">${escapeHtml(sentenceCase(t.status))}</span>` : ''}
         <div class="event-title">${spanTitleHtml}</div>
       </div>`;
     });
@@ -1022,7 +1022,7 @@ function renderDayView(days) {
         onclick="openClickUpTask('${t.id}')"
         onmouseenter="_showTip(event,tasks.find(x=>x.id==='${t.id}'))"
         onmousemove="_moveTip(event)" onmouseleave="_hideTip()">
-        ${t.status ? `<span class="event-status">${escapeHtml(sentenceCase(t.status))}</span>` : ''}
+        ${(t.status && t.layer !== "campaigns" && t.layer !== "holidays") ? `<span class="event-status" style="background:${t.statusColor||'#6b7280'};color:${contrastColor(t.statusColor||'#6b7280')}">${escapeHtml(sentenceCase(t.status))}</span>` : ''}
         <div class="event-title">${titleHtml}</div>
         ${pillHtml}
       </div>`;
@@ -1169,10 +1169,12 @@ function render() {
         const showTitle = !isSpan || isStart || isRowStart;
 
         if(showTitle) {
-          if(t.status) {
+          if(t.status && t.layer !== "campaigns" && t.layer !== "holidays") {
             const statusSpan = document.createElement("span");
             statusSpan.className = "event-status";
             statusSpan.textContent = sentenceCase(t.status);
+            statusSpan.style.background = t.statusColor || "#6b7280";
+            statusSpan.style.color = contrastColor(t.statusColor || "#6b7280");
             evDiv.appendChild(statusSpan);
           }
           const titleDiv = document.createElement("div");

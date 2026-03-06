@@ -177,6 +177,7 @@ export default async (req: Request, context: Context) => {
               publishDate,
               publishDateFieldId,
               status:           t.status?.status || "",
+              statusColor:      t.status?.color  || "#6b7280",
               url:         t.url,
               assignees:   t.assignees?.map((a: any) => ({ id: a.id, name: a.username })) || [],
               type:        resolveContentType(contentTypeField),
