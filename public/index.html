@@ -477,6 +477,10 @@ body {
   <div class="topbar-sep"></div>
   <div class="layers">
     <span class="layers-label">Lists</span>
+    <button class="layer-toggle" data-layer="holidays">
+      <svg class="dot" viewBox="0 0 24 24" fill="currentColor"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
+      Holidays &amp; Events
+    </button>
     <button class="layer-toggle" data-layer="campaigns">
       <svg class="dot" viewBox="0 0 24 24" fill="currentColor"><path d="M16 3L6 7H2v10h4l10 4V3zm2 0v2c2.21.45 4 2.24 4 4.5S20.21 13.55 18 14v2c3.28-.45 6-3.1 6-5.5S21.28 3.45 18 3zM4 9h2v6H4V9z"/></svg>
       Campaigns
@@ -492,10 +496,6 @@ body {
     <button class="layer-toggle" data-layer="paid">
       <svg class="dot" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8 13v1h-1v-1c-1.1 0-2-.9-2-2h1c0 .55.45 1 1 1h2c.55 0 1-.45 1-1 0-.55-.45-1-1-1h-2c-1.1 0-2-.9-2-2s.9-2 2-2V7h1v1c1.1 0 2 .9 2 2h-1c0-.55-.45-1-1-1h-2c-.55 0-1 .45-1 1 0 .55.45 1 1 1h2c1.1 0 2 .9 2 2s-.9 2-2 2z"/></svg>
       Paid Ads
-    </button>
-    <button class="layer-toggle" data-layer="holidays">
-      <svg class="dot" viewBox="0 0 24 24" fill="currentColor"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
-      Holidays &amp; Events
     </button>
   </div>
   <div style="flex:1"></div>
@@ -965,11 +965,13 @@ function renderDayView(days) {
   headerHtml += `</div>`;
 
   // ── Split tasks: spanning (multi-day) vs single-day ──
+  const LAYER_ORDER = ["holidays","campaigns","content","alwayson","paid"];
+  const layerRank = l => { const i = LAYER_ORDER.indexOf(l); return i === -1 ? 99 : i; };
   const allVisible = tasks.filter(t => {
     if(!t.start || !layerVis[t.layer]) return false;
     const tEnd = t.end || t.start;
     return t.start <= lastIso && tEnd >= firstIso;
-  });
+  }).sort((a,b) => layerRank(a.layer) - layerRank(b.layer));
   const spanTasks   = allVisible.filter(t => (t.end||t.start) > t.start);
   const singleTasks = allVisible.filter(t => (t.end||t.start) === t.start);
 
@@ -1127,11 +1129,12 @@ function render() {
         if(ev.target === div || ev.target === numDiv) openCreate(cell.date);
       });
 
+      const LAYER_ORDER_M = ["holidays","campaigns","content","alwayson","paid"];
       const dayTasks = tasks.filter(t => {
         const s = parseDate(t.start), en = parseDate(t.end) || parseDate(t.start);
         if(!s&&!en) return false;
         return cell.date >= (s||en) && cell.date <= (en||s);
-      });
+      }).sort((a,b) => { const r = l => { const i = LAYER_ORDER_M.indexOf(l); return i===-1?99:i; }; return r(a.layer)-r(b.layer); });
 
       dayTasks.forEach(t => {
         const s = parseDate(t.start), en = parseDate(t.end)||parseDate(t.start);
