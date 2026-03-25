@@ -1120,6 +1120,21 @@ function render() {
     const weekDiv = document.createElement("div");
     weekDiv.className = "cal-week";
 
+    // Pre-compute max item count per layer for this week row
+    const weekMaxCounts = {};
+    LAYER_ORDER_M.forEach(l => { weekMaxCounts[l] = 0; });
+    for(let d=0; d<7 && w+d<cells.length; d++) {
+      const dt = cells[w+d].date;
+      const counts = {};
+      LAYER_ORDER_M.forEach(l => { counts[l] = 0; });
+      tasks.forEach(t => {
+        const s = parseDate(t.start), en = parseDate(t.end)||parseDate(t.start);
+        if(!s&&!en) return;
+        if(dt >= (s||en) && dt <= (en||s)) counts[t.layer] = (counts[t.layer]||0) + 1;
+      });
+      LAYER_ORDER_M.forEach(l => { if(counts[l] > weekMaxCounts[l]) weekMaxCounts[l] = counts[l]; });
+    }
+
     for(let d=0; d<7 && w+d<cells.length; d++) {
       const cell = cells[w+d];
       const div = document.createElement("div");
@@ -1163,6 +1178,9 @@ function render() {
         slotDiv.className = "layer-slot" + ((!slotTasks || !slotTasks.length) ? " layer-slot-empty" : "");
         slotDiv.setAttribute("data-layer-slot", layerName);
         if(!layerVis[layerName]) slotDiv.classList.add("hidden");
+        // Set fixed min-height based on max items in this layer across the week row
+        const maxC = weekMaxCounts[layerName] || 0;
+        if(maxC > 0) slotDiv.style.minHeight = (maxC * 19 + Math.max(0, maxC - 1) * 2) + "px";
         div.appendChild(slotDiv);
         if(!slotTasks || !slotTasks.length) return;
 
@@ -1276,14 +1294,6 @@ function render() {
       weekDiv.appendChild(div);
     }
     grid.appendChild(weekDiv);
-
-    // Equalize layer slot heights across this week row so spanning items stay level
-    LAYER_ORDER_M.forEach(layerName => {
-      const slots = weekDiv.querySelectorAll(`.layer-slot[data-layer-slot="${layerName}"]`);
-      let maxH = 0;
-      slots.forEach(s => { const h = s.getBoundingClientRect().height; if(h > maxH) maxH = h; });
-      if(maxH > 0) slots.forEach(s => { s.style.minHeight = Math.ceil(maxH) + "px"; });
-    });
   }
 }
 
@@ -1683,24 +1693,12 @@ document.querySelectorAll(".layer-toggle").forEach(btn => {
     const l = btn.dataset.layer;
     layerVis[l] = !layerVis[l];
     btn.classList.toggle("off", !layerVis[l]);
-    // Toggle individual events (day/week views)
-    document.querySelectorAll(`.event[data-layer="${l}"]`).forEach(ev=>ev.classList.toggle("hidden",!layerVis[l]));
-    // Toggle layer slots (month view)
-    document.querySelectorAll(`.layer-slot[data-layer-slot="${l}"]`).forEach(s=>{
-      s.classList.toggle("hidden",!layerVis[l]);
-      s.style.minHeight = "";
-    });
-    // Re-equalize slot heights per week row
-    const layerOrder = ["holidays","campaigns","content","alwayson","paid"];
-    document.querySelectorAll(".cal-week").forEach(weekDiv => {
-      layerOrder.forEach(ln => {
-        const slots = weekDiv.querySelectorAll(`.layer-slot[data-layer-slot="${ln}"]:not(.hidden)`);
-        let maxH = 0;
-        slots.forEach(s => { const h = s.getBoundingClientRect().height; if(h > maxH) maxH = h; });
-        const allSlots = weekDiv.querySelectorAll(`.layer-slot[data-layer-slot="${ln}"]`);
-        if(maxH > 0) allSlots.forEach(s => { if(!s.classList.contains("hidden")) s.style.minHeight = Math.ceil(maxH) + "px"; });
-      });
-    });
+    if(currentView === 'month') {
+      render();
+    } else {
+      // Toggle individual events (day/week views)
+      document.querySelectorAll(`.event[data-layer="${l}"]`).forEach(ev=>ev.classList.toggle("hidden",!layerVis[l]));
+    }
   });
 });
 
