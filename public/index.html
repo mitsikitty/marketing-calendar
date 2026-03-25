@@ -216,7 +216,6 @@ body {
 .event[data-layer].hidden { display:none!important; }
 .layer-slot { display:block; }
 .layer-slot.hidden { display:none!important; }
-.layer-slot-empty { min-height:19px; }
 
 /* ── Lightbox ── */
 .lb-overlay {
@@ -1276,6 +1275,14 @@ function render() {
       weekDiv.appendChild(div);
     }
     grid.appendChild(weekDiv);
+
+    // Equalize layer slot heights across this week row so spanning items stay level
+    LAYER_ORDER_M.forEach(layerName => {
+      const slots = weekDiv.querySelectorAll(`.layer-slot[data-layer-slot="${layerName}"]`);
+      let maxH = 0;
+      slots.forEach(s => { if(s.offsetHeight > maxH) maxH = s.offsetHeight; });
+      if(maxH > 0) slots.forEach(s => { s.style.minHeight = maxH + "px"; });
+    });
   }
 }
 
@@ -1678,7 +1685,21 @@ document.querySelectorAll(".layer-toggle").forEach(btn => {
     // Toggle individual events (day/week views)
     document.querySelectorAll(`.event[data-layer="${l}"]`).forEach(ev=>ev.classList.toggle("hidden",!layerVis[l]));
     // Toggle layer slots (month view)
-    document.querySelectorAll(`.layer-slot[data-layer-slot="${l}"]`).forEach(s=>s.classList.toggle("hidden",!layerVis[l]));
+    document.querySelectorAll(`.layer-slot[data-layer-slot="${l}"]`).forEach(s=>{
+      s.classList.toggle("hidden",!layerVis[l]);
+      s.style.minHeight = "";
+    });
+    // Re-equalize slot heights per week row
+    const layerOrder = ["holidays","campaigns","content","alwayson","paid"];
+    document.querySelectorAll(".cal-week").forEach(weekDiv => {
+      layerOrder.forEach(ln => {
+        const slots = weekDiv.querySelectorAll(`.layer-slot[data-layer-slot="${ln}"]:not(.hidden)`);
+        let maxH = 0;
+        slots.forEach(s => { if(s.scrollHeight > maxH) maxH = s.scrollHeight; });
+        const allSlots = weekDiv.querySelectorAll(`.layer-slot[data-layer-slot="${ln}"]`);
+        if(maxH > 0) allSlots.forEach(s => { if(!s.classList.contains("hidden")) s.style.minHeight = maxH + "px"; });
+      });
+    });
   });
 });
 
