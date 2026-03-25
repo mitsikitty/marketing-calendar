@@ -1271,7 +1271,10 @@ function render() {
             if(pillsDiv.children.length) evDiv.appendChild(pillsDiv);
           }
         } else {
-          evDiv.innerHTML = "&nbsp;";
+          const emptyTitle = document.createElement("div");
+          emptyTitle.className = "event-title";
+          emptyTitle.innerHTML = "&nbsp;";
+          evDiv.appendChild(emptyTitle);
         }
 
         if(!isSpan || isStart) {
