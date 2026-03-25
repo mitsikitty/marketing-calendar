@@ -214,6 +214,8 @@ body {
 /* Row-start = first cell of a new week row for a continuing span */
 .event.row-start { border-left:3px solid transparent; border-radius:3px 0 0 3px; margin-left:0; padding-left:5px; }
 .event[data-layer].hidden { display:none!important; }
+.layer-slot { display:block; }
+.layer-slot.hidden { display:none!important; }
 
 /* ── Lightbox ── */
 .lb-overlay {
@@ -1136,7 +1138,24 @@ function render() {
         return cell.date >= (s||en) && cell.date <= (en||s);
       }).sort((a,b) => { const r = l => { const i = LAYER_ORDER_M.indexOf(l); return i===-1?99:i; }; return r(a.layer)-r(b.layer); });
 
+      // Group events into fixed-position layer slots
+      const layerSlots = {};
+      LAYER_ORDER_M.forEach(l => { layerSlots[l] = []; });
       dayTasks.forEach(t => {
+        if(!layerSlots[t.layer]) layerSlots[t.layer] = [];
+        layerSlots[t.layer].push(t);
+      });
+
+      LAYER_ORDER_M.forEach(layerName => {
+        const slotTasks = layerSlots[layerName];
+        if(!slotTasks || !slotTasks.length) return;
+        const slotDiv = document.createElement("div");
+        slotDiv.className = "layer-slot";
+        slotDiv.setAttribute("data-layer-slot", layerName);
+        if(!layerVis[layerName]) slotDiv.classList.add("hidden");
+        div.appendChild(slotDiv);
+
+      slotTasks.forEach(t => {
         const s = parseDate(t.start), en = parseDate(t.end)||parseDate(t.start);
         const isStart = isSameDay(cell.date, s||en);
         const isEnd   = isSameDay(cell.date, en||s);
@@ -1150,7 +1169,6 @@ function render() {
         evDiv.className = `event ${t.layer} ${spanClass}${isRowStart?" row-start":""}`;
         evDiv.setAttribute("data-layer", t.layer);
         evDiv.setAttribute("data-taskid", t.id);
-        if(!layerVis[t.layer]) evDiv.classList.add("hidden");
         if(_isPastTask(t)) evDiv.style.opacity = "0.5";
 
         evDiv.addEventListener("click", ev => {
@@ -1240,8 +1258,9 @@ function render() {
           evDiv.appendChild(rRight);
         }
 
-        div.appendChild(evDiv);
-      });
+        slotDiv.appendChild(evDiv);
+      }); // end slotTasks.forEach
+      }); // end LAYER_ORDER_M.forEach
 
       weekDiv.appendChild(div);
     }
@@ -1645,7 +1664,10 @@ document.querySelectorAll(".layer-toggle").forEach(btn => {
     const l = btn.dataset.layer;
     layerVis[l] = !layerVis[l];
     btn.classList.toggle("off", !layerVis[l]);
+    // Toggle individual events (day/week views)
     document.querySelectorAll(`.event[data-layer="${l}"]`).forEach(ev=>ev.classList.toggle("hidden",!layerVis[l]));
+    // Toggle layer slots (month view)
+    document.querySelectorAll(`.layer-slot[data-layer-slot="${l}"]`).forEach(s=>s.classList.toggle("hidden",!layerVis[l]));
   });
 });
 
