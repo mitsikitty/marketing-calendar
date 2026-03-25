@@ -215,8 +215,8 @@ body {
 .event.row-start { border-left:3px solid transparent; border-radius:3px 0 0 3px; margin-left:0; padding-left:5px; }
 .event[data-layer].hidden { display:none!important; }
 .layer-slot { display:block; }
-.layer-slot.hidden { visibility:hidden!important; pointer-events:none; }
-.layer-slot.hidden .event { visibility:hidden!important; display:block!important; }
+.layer-slot.hidden { display:none!important; }
+.layer-slot-empty { min-height:19px; }
 
 /* ── Lightbox ── */
 .lb-overlay {
@@ -1106,6 +1106,16 @@ function render() {
   const rem=(7-(cells.length%7))%7;
   for(let d=1;d<=rem;d++) cells.push({date:new Date(currentYear,currentMonth+1,d),other:true});
 
+  // Find which layers have at least one item visible in this view
+  const LAYER_ORDER_M = ["holidays","campaigns","content","alwayson","paid"];
+  const viewStart = cells[0].date, viewEnd = cells[cells.length-1].date;
+  const activeLayers = new Set();
+  tasks.forEach(t => {
+    const s = parseDate(t.start), en = parseDate(t.end)||parseDate(t.start);
+    if(!s&&!en) return;
+    if((s||en) <= viewEnd && (en||s) >= viewStart) activeLayers.add(t.layer);
+  });
+
   for(let w=0; w<cells.length; w+=7) {
     const weekDiv = document.createElement("div");
     weekDiv.className = "cal-week";
@@ -1132,7 +1142,6 @@ function render() {
         if(ev.target === div || ev.target === numDiv) openCreate(cell.date);
       });
 
-      const LAYER_ORDER_M = ["holidays","campaigns","content","alwayson","paid"];
       const dayTasks = tasks.filter(t => {
         const s = parseDate(t.start), en = parseDate(t.end) || parseDate(t.start);
         if(!s&&!en) return false;
@@ -1148,13 +1157,14 @@ function render() {
       });
 
       LAYER_ORDER_M.forEach(layerName => {
+        if(!activeLayers.has(layerName)) return;
         const slotTasks = layerSlots[layerName];
-        if(!slotTasks || !slotTasks.length) return;
         const slotDiv = document.createElement("div");
-        slotDiv.className = "layer-slot";
+        slotDiv.className = "layer-slot" + ((!slotTasks || !slotTasks.length) ? " layer-slot-empty" : "");
         slotDiv.setAttribute("data-layer-slot", layerName);
         if(!layerVis[layerName]) slotDiv.classList.add("hidden");
         div.appendChild(slotDiv);
+        if(!slotTasks || !slotTasks.length) return;
 
       slotTasks.forEach(t => {
         const s = parseDate(t.start), en = parseDate(t.end)||parseDate(t.start);
