@@ -769,13 +769,15 @@ function scrollToCurrentWeek() {
   if(!grid) return;
   const now = new Date();
   if(now.getFullYear()!==currentYear||now.getMonth()!==currentMonth) return;
-  requestAnimationFrame(() => {
-    const todayCell = grid.querySelector(".cal-cell.today");
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const g = document.getElementById("calGrid");
+    if(!g) return;
+    const todayCell = g.querySelector(".cal-cell.today");
     if(!todayCell) return;
     const weekRow = todayCell.closest(".cal-week") || todayCell;
-    const top = weekRow.getBoundingClientRect().top - grid.getBoundingClientRect().top + grid.scrollTop;
-    grid.scrollTop = top;
-  });
+    const top = weekRow.getBoundingClientRect().top - g.getBoundingClientRect().top + g.scrollTop;
+    g.scrollTop = top;
+  }));
 }
 
 // ── Load tasks ──
@@ -1808,6 +1810,8 @@ function goToday() {
 
 // ── Layer toggles ──
 document.querySelectorAll(".layer-toggle").forEach(btn => {
+  const l = btn.dataset.layer;
+  if(l in layerVis && !layerVis[l]) btn.classList.add("off");
   btn.addEventListener("click", ()=>{
     const l = btn.dataset.layer;
     layerVis[l] = !layerVis[l];
