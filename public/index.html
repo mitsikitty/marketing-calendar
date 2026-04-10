@@ -1234,7 +1234,19 @@ function render() {
     if((s||en) <= viewEnd && (en||s) >= viewStart) activeLayers.add(t.sublayer);
   });
 
+  // If viewing the current month, hide weeks that end before today's week
+  const nowD = new Date();
+  const isCurrentMonth = nowD.getFullYear()===currentYear && nowD.getMonth()===currentMonth;
+  let skipBeforeWeek = 0;
+  if(isCurrentMonth) {
+    for(let w=0; w<cells.length; w+=7) {
+      const weekEnd = cells[Math.min(w+6, cells.length-1)].date;
+      if(weekEnd >= new Date(nowD.getFullYear(), nowD.getMonth(), nowD.getDate())) { skipBeforeWeek = w; break; }
+    }
+  }
+
   for(let w=0; w<cells.length; w+=7) {
+    if(w < skipBeforeWeek) continue;
     const weekDiv = document.createElement("div");
     weekDiv.className = "cal-week";
 
