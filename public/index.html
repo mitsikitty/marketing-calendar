@@ -612,22 +612,13 @@ body {
     <div id="ct-type-hem-row">
     <div class="field-row">
       <div class="field">
-        <label>Content Type <span style="color:#ef4444">*</span></label>
+        <label id="f-type-label">Campaign Type <span style="color:#ef4444">*</span></label>
         <select id="f-type" required>
           <option value="">— select —</option>
-          <option value="0">Selling Season</option>
-          <option value="1">Always On</option>
-          <option value="2">Campaign</option>
-          <option value="3">TikTok</option>
-          <option value="4">Reel</option>
-          <option value="5">Carousel</option>
-          <option value="6">Image</option>
-          <option value="7">Stories</option>
-          <option value="8">FB Post</option>
-          <option value="9">EDM</option>
-          <option value="10">Blog</option>
-          <option value="11">Pop Up</option>
-          <option value="12">Web Banner</option>
+          <option value="0">Paid Ads Campaign</option>
+          <option value="1">Organic Campaign</option>
+          <option value="2">Campaign Task</option>
+          <option value="3">Selling Season</option>
         </select>
       </div>
       <div class="field">
@@ -672,7 +663,7 @@ const layerVis = { paidcampaign:true, organiccampaign:true, sellingseason:true, 
 // Map a task's list (t.layer) + content type + status to its sub-layer bucket
 function deriveSublayer(t) {
   if(t.layer === "campaigns") {
-    const ct = (t.type?.name || (typeof t.type === "string" ? t.type : "") || "").toLowerCase().trim();
+    const ct = (t.campaignType?.name || t.type?.name || (typeof t.type === "string" ? t.type : "") || "").toLowerCase().trim();
     if(ct === "selling season") return "sellingseason";
     if(ct === "paid ad campaign" || ct.startsWith("paid ad")) return "paidcampaign";
     return "organiccampaign";
@@ -1736,6 +1727,21 @@ function _onLayerChange() {
   document.getElementById("ct-date-publish").style.display = pub ? ""     : "none";
   document.getElementById("ct-type-hem-row").style.display = isHoliday ? "none" : "";
   document.getElementById("ct-region").style.display       = isHoliday ? ""     : "none";
+  // Swap type dropdown options based on selected list
+  const typeSelect = document.getElementById("f-type");
+  const typeLabel  = document.getElementById("f-type-label");
+  const campaignTypeOpts = [
+    {v:"0",t:"Paid Ads Campaign"},{v:"1",t:"Organic Campaign"},{v:"2",t:"Campaign Task"},{v:"3",t:"Selling Season"}
+  ];
+  const contentTypeOpts = [
+    {v:"0",t:"Tiktok & Reel"},{v:"1",t:"Tiktok"},{v:"2",t:"Reel"},{v:"3",t:"Carousel"},
+    {v:"4",t:"Image"},{v:"5",t:"Stories"},{v:"6",t:"FB Post"},{v:"7",t:"EDM"},
+    {v:"8",t:"Blog"},{v:"9",t:"Pop Up"},{v:"10",t:"Web Banner"},{v:"11",t:"Landing Page"}
+  ];
+  const opts = (v === "campaigns") ? campaignTypeOpts : contentTypeOpts;
+  typeLabel.innerHTML = (v === "campaigns" ? "Campaign Type" : "Content Type") + ' <span style="color:#ef4444">*</span>';
+  typeSelect.innerHTML = '<option value="">— select —</option>';
+  opts.forEach(o => { typeSelect.innerHTML += `<option value="${o.v}">${o.t}</option>`; });
   if (isHoliday) {
     _loadRegionOptions().then(opts => {
       const sel = document.getElementById("f-region");

@@ -11,28 +11,35 @@ const LISTS = {
   holidays:  "901605021479",
 };
 
-// ── Content Type dropdown (field id: 3cebb834) ──
-const CONTENT_TYPE_MAP: Record<string, string> = {
+// ── Campaign Type dropdown (field id: 3cebb834, renamed from "Content Type") ──
+const CAMPAIGN_TYPE_MAP: Record<string, string> = {
+  "6b26d75c-5288-442a-981c-ed4c5b5c4293": "Paid Ads Campaign",
+  "c67069ed-68f6-4b34-b934-0f0cee5fbe2f": "Organic Campaign",
+  "7b30af30-3175-4500-84b6-6ecb2e633466": "Campaign Task",
   "67df7085-a7b0-4e46-a111-e17eae6db20f": "Selling Season",
-  "7f2f91c1-9241-4083-b9b5-940bd986709e": "Always On",
-  "c67069ed-68f6-4b34-b934-0f0cee5fbe2f": "Campaign",
-  "1532c87d-7f97-40ee-8566-dadd2bbd212e": "TikTok",
-  "99253399-a249-4974-b832-5e36eb8dd9fe": "Reel",
-  "14d1f926-5a13-4af1-aab4-33107b0bf8ed": "Carousel",
-  "2cbcedf0-a4bd-4550-a0bf-79f188643ac0": "Image",
-  "458ff636-4838-444e-a9a0-b5597a2d217d": "Stories",
-  "a82a3191-68cf-4f8f-bf62-7fb54498279d": "FB Post",
-  "9bd505f6-0879-4f9b-b14f-a8ca9e346c1c": "EDM",
-  "531e488d-830f-4811-999e-3b3ec29e8de0": "Blog",
-  "c1b6e48e-bf41-45e1-a844-5810c5497d9c": "Pop Up",
-  "703f4d40-7330-4468-976e-dcba86000a3f": "Web Banner",
+};
+
+// ── Content Type dropdown (field id: 748aec8a, new field on content/alwayson) ──
+const CONTENT_TYPE_MAP: Record<string, string> = {
+  "bbdb63be-a535-4d44-988f-c0c39df4667f": "Tiktok & Reel",
+  "89a66db0-6731-4fde-9fc1-76f3f3f94667": "Tiktok",
+  "fbf1920b-673b-49f4-a854-17180d30c02c": "Reel",
+  "9ada0e43-5c99-4e7a-82ea-f579cddaf31c": "Carousel",
+  "ca320dc7-7e5e-44f0-84db-8de07a64b037": "Image",
+  "49d4a869-3ab8-4410-9e09-62f20d6f4634": "Stories",
+  "2bb5d4ff-b702-4cfc-a798-60fd1b491563": "FB Post",
+  "7ba4c11d-77d2-4f30-a1d9-6bff84a3b63a": "EDM",
+  "4f9866ec-b427-44b5-ae7d-190bb7028e1e": "Blog",
+  "e952f867-cb05-4110-81fe-eb4005aea069": "Pop Up",
+  "d301eaeb-21a7-48e2-ad37-aa496e674e9c": "Web Banner",
+  "110e76d2-2d27-4662-99c2-08a051932dba": "Landing Page",
 };
 
 // ── Content Type dropdown index → name (API returns orderindex as number) ──
 const CONTENT_TYPE_BY_INDEX: Record<number, string> = {
-  0: "Selling Season", 1: "Always On", 2: "Campaign", 3: "TikTok",
-  4: "Reel", 5: "Carousel", 6: "Image", 7: "Stories",
-  8: "FB Post", 9: "EDM", 10: "Blog", 11: "Pop Up", 12: "Web Banner",
+  0: "Tiktok & Reel", 1: "Tiktok", 2: "Reel", 3: "Carousel",
+  4: "Image", 5: "Stories", 6: "FB Post", 7: "EDM",
+  8: "Blog", 9: "Pop Up", 10: "Web Banner", 11: "Landing Page",
 };
 
 // ── Publish Location labels (field id: d6772935) ──
@@ -49,18 +56,18 @@ const PUBLISH_LOCATION_MAP: Record<string, string> = {
 // ── Hemisphere dropdown ──
 const HEMISPHERE_MAP: Record<number, string> = { 0: "Both", 1: "Southern", 2: "Northern" };
 
-function resolveContentType(field: any): { name: string; color: string | null } | null {
+function resolveDropdown(field: any, fallbackMap: Record<string, string>, fallbackByIndex?: Record<number, string>): { name: string; color: string | null } | null {
   if (!field || field.value === null || field.value === undefined) return null;
   const opts: any[] = field.type_config?.options || [];
   let name = "";
   let color: string | null = null;
   if (typeof field.value === "number") {
     const opt = opts.find((o: any) => o.orderindex === field.value);
-    name  = opt?.name || CONTENT_TYPE_BY_INDEX[field.value] || String(field.value);
+    name  = opt?.name || (fallbackByIndex ? fallbackByIndex[field.value] : "") || String(field.value);
     color = (opt?.color && opt.color !== "none") ? opt.color : null;
   } else if (typeof field.value === "string") {
     const opt = opts.find((o: any) => o.id === field.value);
-    name  = opt?.name || CONTENT_TYPE_MAP[field.value] || field.value;
+    name  = opt?.name || fallbackMap[field.value] || field.value;
     color = (opt?.color && opt.color !== "none") ? opt.color : null;
   }
   return name ? { name, color } : null;
@@ -108,7 +115,7 @@ function resolveEndDate(fields: any[]): string | null {
 
 function resolveParentCampaign(fields: any[]): string | null {
   const f = fields?.find((f: any) =>
-    f.name === "Parent Campaign" || f.name === "Campaign" || f.name === "Related Campaign"
+    f.name === "Parent Campaign" || f.name === "Campaign" || f.name === "Related Campaign" || f.name === "Paid Ads Campaign"
   );
   if (!f || f.value === null || f.value === undefined) return null;
   switch (f.type) {
@@ -155,7 +162,9 @@ export default async (req: Request, context: Context) => {
           const data = await res.json() as any;
           return (data.tasks || []).map((t: any) => {
             const cf = t.custom_fields || [];
+            // "Content Type" (748aec8a) for pill display; "Campaign Type" (3cebb834) for sublayer
             const contentTypeField  = cf.find((f: any) => f.name === "Content Type" && f.type === "drop_down");
+            const campaignTypeField = cf.find((f: any) => f.name === "Campaign Type" && f.type === "drop_down");
             const publishLocField   = cf.find((f: any) => f.name === "Publish Location");
             const publishDateField  = cf.find((f: any) => f.name === "Publish Date");
             const publishDate       = publishDateField?.value ? tsToDate(Number(publishDateField.value)) : null;
@@ -168,19 +177,27 @@ export default async (req: Request, context: Context) => {
               || (t.start_date ? tsToDate(Number(t.start_date)) : null)
               || (t.due_date  ? tsToDate(Number(t.due_date))   : null);
 
+            // For campaigns, due_date is the genuine campaign end.
+            // For content/alwayson/paid, only use explicit "End date" field; never fall
+            // back to due_date (which would turn a single-publish-day task into a span).
+            const computedEnd = layer === "campaigns"
+              ? (endDate || publishDate || (t.due_date ? tsToDate(Number(t.due_date)) : startDate))
+              : (endDate || startDate);
+
             return {
               id:               t.id,
               title:            t.name,
               layer,
               start:            startDate,
-              end:              endDate || publishDate || (t.due_date ? tsToDate(Number(t.due_date)) : startDate),
+              end:              computedEnd,
               publishDate,
               publishDateFieldId,
               status:           t.status?.status || "",
               statusColor:      t.status?.color  || "#6b7280",
               url:         t.url,
               assignees:   t.assignees?.map((a: any) => ({ id: a.id, name: a.username })) || [],
-              type:        resolveContentType(contentTypeField),
+              type:        resolveDropdown(contentTypeField, CONTENT_TYPE_MAP, CONTENT_TYPE_BY_INDEX),
+              campaignType: resolveDropdown(campaignTypeField, CAMPAIGN_TYPE_MAP),
               locations:   resolveLocations(publishLocField),
               campaign:    resolveParentCampaign(cf),
             };
@@ -286,7 +303,9 @@ export default async (req: Request, context: Context) => {
       const listId = LISTS[body.layer as keyof typeof LISTS] || LISTS.content;
       const customFields: any[] = [];
       if (body.contentType !== undefined && body.contentType !== "") {
-        customFields.push({ id: "3cebb834", value: Number(body.contentType) });
+        // Campaigns list uses "Campaign Type" (3cebb834); content/alwayson use "Content Type" (748aec8a)
+        const typeFieldId = (body.layer === "campaigns") ? "3cebb834" : "748aec8a";
+        customFields.push({ id: typeFieldId, value: Number(body.contentType) });
       }
       const payload: any = {
         name:          body.title,
