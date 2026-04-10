@@ -11,21 +11,29 @@
   --bg:#f3f4f6; --surface:#fff; --surface2:#f8f9fb; --border:#e5e7eb;
   --text:#1f2937; --text-muted:#6b7280; --text-light:#9ca3af;
   --shadow:rgba(0,0,0,0.07); --radius:4px; --topbar-h:48px;
-  --campaigns:#7c3aed; --campaigns-bg:#ede9fe; --campaigns-text:#5b21b6;
-  --content:#0891b2;   --content-bg:#e0f2fe;   --content-text:#0369a1;
-  --alwayson:#059669;  --alwayson-bg:#d1fae5;  --alwayson-text:#065f46;
-  --paid:#d97706;      --paid-bg:#fef3c7;      --paid-text:#92400e;
-  --holidays:#db2777;  --holidays-bg:#fce7f3;  --holidays-text:#9d174d;
+  --sellingseason:#7e59e4;     --sellingseason-bg:#ede9fe;     --sellingseason-text:#5b21b6;
+  --organiccampaign:#ab4aba;   --organiccampaign-bg:#fae8ff;   --organiccampaign-text:#86198f;
+  --paidcampaign:#e58082;      --paidcampaign-bg:#ffe4e6;      --paidcampaign-text:#9f1239;
+  --content:#0891b2;           --content-bg:#e0f2fe;           --content-text:#0369a1;
+  --alwayson:#059669;          --alwayson-bg:#d1fae5;          --alwayson-text:#065f46;
+  --paidcontent:#d97706;       --paidcontent-bg:#fef3c7;       --paidcontent-text:#92400e;
+  --holidayevents:#db2777;     --holidayevents-bg:#fce7f3;     --holidayevents-text:#9d174d;
+  --industrydays:#0284c7;      --industrydays-bg:#e0f2fe;      --industrydays-text:#075985;
+  --productiontimeline:#ea580c;--productiontimeline-bg:#ffedd5;--productiontimeline-text:#9a3412;
 }
 [data-dark] {
   --bg:#1a1d27; --surface:#22263a; --surface2:#2a2f45;
   --border:rgba(255,255,255,0.09); --text:#e5e7eb; --text-muted:#9ca3af; --text-light:#4b5563;
   --shadow:rgba(0,0,0,0.35);
-  --campaigns-bg:rgba(124,58,237,0.2); --campaigns-text:#c4b5fd;
-  --content-bg:rgba(8,145,178,0.2);    --content-text:#67e8f9;
-  --alwayson-bg:rgba(5,150,105,0.2);   --alwayson-text:#6ee7b7;
-  --paid-bg:rgba(217,119,6,0.2);       --paid-text:#fcd34d;
-  --holidays-bg:rgba(219,39,119,0.2);  --holidays-text:#f9a8d4;
+  --sellingseason-bg:rgba(126,89,228,0.2);    --sellingseason-text:#c4b5fd;
+  --organiccampaign-bg:rgba(171,74,186,0.2);  --organiccampaign-text:#e9a8f0;
+  --paidcampaign-bg:rgba(229,128,130,0.2);    --paidcampaign-text:#fda4af;
+  --content-bg:rgba(8,145,178,0.2);           --content-text:#67e8f9;
+  --alwayson-bg:rgba(5,150,105,0.2);          --alwayson-text:#6ee7b7;
+  --paidcontent-bg:rgba(217,119,6,0.2);       --paidcontent-text:#fcd34d;
+  --holidayevents-bg:rgba(219,39,119,0.2);    --holidayevents-text:#f9a8d4;
+  --industrydays-bg:rgba(2,132,199,0.2);      --industrydays-text:#7dd3fc;
+  --productiontimeline-bg:rgba(234,88,12,0.2);--productiontimeline-text:#fdba74;
 }
 
 html, body { height:100%; overflow:hidden; }
@@ -67,11 +75,15 @@ body {
   font-size:11px; font-weight:500; font-family:inherit; transition:all .12s; user-select:none; white-space:nowrap;
 }
 .layer-toggle .dot { width:13px; height:13px; flex-shrink:0; }
-.layer-toggle[data-layer="campaigns"]{ background:var(--campaigns-bg); color:var(--campaigns-text); border-color:var(--campaigns); }
-.layer-toggle[data-layer="content"]  { background:var(--content-bg);   color:var(--content-text);   border-color:var(--content); }
-.layer-toggle[data-layer="alwayson"] { background:var(--alwayson-bg);  color:var(--alwayson-text);  border-color:var(--alwayson); }
-.layer-toggle[data-layer="paid"]     { background:var(--paid-bg);      color:var(--paid-text);      border-color:var(--paid); }
-.layer-toggle[data-layer="holidays"] { background:var(--holidays-bg);  color:var(--holidays-text);  border-color:var(--holidays); }
+.layer-toggle[data-layer="paidcampaign"]      { background:var(--paidcampaign-bg);      color:var(--paidcampaign-text);      border-color:var(--paidcampaign); }
+.layer-toggle[data-layer="organiccampaign"]   { background:var(--organiccampaign-bg);   color:var(--organiccampaign-text);   border-color:var(--organiccampaign); }
+.layer-toggle[data-layer="sellingseason"]     { background:var(--sellingseason-bg);     color:var(--sellingseason-text);     border-color:var(--sellingseason); }
+.layer-toggle[data-layer="content"]           { background:var(--content-bg);           color:var(--content-text);           border-color:var(--content); }
+.layer-toggle[data-layer="alwayson"]          { background:var(--alwayson-bg);          color:var(--alwayson-text);          border-color:var(--alwayson); }
+.layer-toggle[data-layer="paidcontent"]       { background:var(--paidcontent-bg);       color:var(--paidcontent-text);       border-color:var(--paidcontent); }
+.layer-toggle[data-layer="holidayevents"]     { background:var(--holidayevents-bg);     color:var(--holidayevents-text);     border-color:var(--holidayevents); }
+.layer-toggle[data-layer="industrydays"]      { background:var(--industrydays-bg);      color:var(--industrydays-text);      border-color:var(--industrydays); }
+.layer-toggle[data-layer="productiontimeline"]{ background:var(--productiontimeline-bg);color:var(--productiontimeline-text);border-color:var(--productiontimeline); }
 .layer-toggle.off { background:transparent!important; color:var(--text-muted)!important; border-color:var(--border)!important; }
 
 /* ── Calendar ── */
@@ -188,21 +200,33 @@ body {
 .pill-email{ background:#6b7280; color:#fff; }
 .pill-campaign { background:transparent; color:var(--text-muted); border:1px solid var(--border); font-style:italic; }
 
-.event.campaigns { background:var(--campaigns-bg); border-left-color:var(--campaigns); }
-.event.campaigns .event-title { color:var(--campaigns-text); }
-.event.campaigns .resize-handle { color:var(--campaigns); }
-.event.content   { background:var(--content-bg);   border-left-color:var(--content); }
-.event.content   .event-title { color:var(--content-text); }
-.event.content   .resize-handle { color:var(--content); }
-.event.alwayson  { background:var(--alwayson-bg);  border-left-color:var(--alwayson); }
-.event.alwayson  .event-title { color:var(--alwayson-text); }
-.event.alwayson  .resize-handle { color:var(--alwayson); }
-.event.paid      { background:var(--paid-bg);      border-left-color:var(--paid); }
-.event.paid      .event-title { color:var(--paid-text); }
-.event.paid      .resize-handle { color:var(--paid); }
-.event.holidays  { background:var(--holidays-bg);  border-left-color:var(--holidays); }
-.event.holidays  .event-title { color:var(--holidays-text); }
-.event.holidays  .resize-handle { color:var(--holidays); }
+.event.paidcampaign      { background:var(--paidcampaign-bg);      border-left-color:var(--paidcampaign); }
+.event.paidcampaign      .event-title { color:var(--paidcampaign-text); }
+.event.paidcampaign      .resize-handle { color:var(--paidcampaign); }
+.event.organiccampaign   { background:var(--organiccampaign-bg);   border-left-color:var(--organiccampaign); }
+.event.organiccampaign   .event-title { color:var(--organiccampaign-text); }
+.event.organiccampaign   .resize-handle { color:var(--organiccampaign); }
+.event.sellingseason     { background:var(--sellingseason-bg);     border-left-color:var(--sellingseason); }
+.event.sellingseason     .event-title { color:var(--sellingseason-text); }
+.event.sellingseason     .resize-handle { color:var(--sellingseason); }
+.event.content           { background:var(--content-bg);           border-left-color:var(--content); }
+.event.content           .event-title { color:var(--content-text); }
+.event.content           .resize-handle { color:var(--content); }
+.event.alwayson          { background:var(--alwayson-bg);          border-left-color:var(--alwayson); }
+.event.alwayson          .event-title { color:var(--alwayson-text); }
+.event.alwayson          .resize-handle { color:var(--alwayson); }
+.event.paidcontent       { background:var(--paidcontent-bg);       border-left-color:var(--paidcontent); }
+.event.paidcontent       .event-title { color:var(--paidcontent-text); }
+.event.paidcontent       .resize-handle { color:var(--paidcontent); }
+.event.holidayevents     { background:var(--holidayevents-bg);     border-left-color:var(--holidayevents); }
+.event.holidayevents     .event-title { color:var(--holidayevents-text); }
+.event.holidayevents     .resize-handle { color:var(--holidayevents); }
+.event.industrydays      { background:var(--industrydays-bg);      border-left-color:var(--industrydays); }
+.event.industrydays      .event-title { color:var(--industrydays-text); }
+.event.industrydays      .resize-handle { color:var(--industrydays); }
+.event.productiontimeline { background:var(--productiontimeline-bg); border-left-color:var(--productiontimeline); }
+.event.productiontimeline .event-title { color:var(--productiontimeline-text); }
+.event.productiontimeline .resize-handle { color:var(--productiontimeline); }
 
 .event.span-start { border-radius:3px 0 0 3px; margin-right:-4px; padding-right:5px; }
 .event.span-mid   { border-radius:0; border-left-color:transparent!important; margin-left:-4px; margin-right:-4px; padding-left:5px; }
@@ -480,13 +504,17 @@ body {
   <div class="topbar-sep"></div>
   <div class="layers">
     <span class="layers-label">Lists</span>
-    <button class="layer-toggle" data-layer="holidays">
-      <svg class="dot" viewBox="0 0 24 24" fill="currentColor"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
-      Holidays &amp; Events
-    </button>
-    <button class="layer-toggle" data-layer="campaigns">
+    <button class="layer-toggle" data-layer="paidcampaign">
       <svg class="dot" viewBox="0 0 24 24" fill="currentColor"><path d="M16 3L6 7H2v10h4l10 4V3zm2 0v2c2.21.45 4 2.24 4 4.5S20.21 13.55 18 14v2c3.28-.45 6-3.1 6-5.5S21.28 3.45 18 3zM4 9h2v6H4V9z"/></svg>
-      Campaigns
+      Paid Ads Campaign
+    </button>
+    <button class="layer-toggle" data-layer="organiccampaign">
+      <svg class="dot" viewBox="0 0 24 24" fill="currentColor"><path d="M16 3L6 7H2v10h4l10 4V3zm2 0v2c2.21.45 4 2.24 4 4.5S20.21 13.55 18 14v2c3.28-.45 6-3.1 6-5.5S21.28 3.45 18 3zM4 9h2v6H4V9z"/></svg>
+      Organic Campaign
+    </button>
+    <button class="layer-toggle" data-layer="sellingseason">
+      <svg class="dot" viewBox="0 0 24 24" fill="currentColor"><path d="M16 3L6 7H2v10h4l10 4V3zm2 0v2c2.21.45 4 2.24 4 4.5S20.21 13.55 18 14v2c3.28-.45 6-3.1 6-5.5S21.28 3.45 18 3zM4 9h2v6H4V9z"/></svg>
+      Selling Season
     </button>
     <button class="layer-toggle" data-layer="content">
       <svg class="dot" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
@@ -496,9 +524,21 @@ body {
       <svg class="dot" viewBox="0 0 24 24" fill="currentColor"><path d="M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42A6.92 6.92 0 0119 12c0 3.87-3.13 7-7 7A7 7 0 015 12c0-2.28 1.09-4.3 2.58-5.42L6.17 5.17A9 9 0 003 12a9 9 0 0018 0c0-3.31-1.8-6.17-4.17-7.83z"/></svg>
       Always On Content
     </button>
-    <button class="layer-toggle" data-layer="paid">
+    <button class="layer-toggle" data-layer="paidcontent">
       <svg class="dot" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8 13v1h-1v-1c-1.1 0-2-.9-2-2h1c0 .55.45 1 1 1h2c.55 0 1-.45 1-1 0-.55-.45-1-1-1h-2c-1.1 0-2-.9-2-2s.9-2 2-2V7h1v1c1.1 0 2 .9 2 2h-1c0-.55-.45-1-1-1h-2c-.55 0-1 .45-1 1 0 .55.45 1 1 1h2c1.1 0 2 .9 2 2s-.9 2-2 2z"/></svg>
-      Paid Ads
+      Paid Ads Content
+    </button>
+    <button class="layer-toggle" data-layer="holidayevents">
+      <svg class="dot" viewBox="0 0 24 24" fill="currentColor"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
+      Holiday Events
+    </button>
+    <button class="layer-toggle" data-layer="industrydays">
+      <svg class="dot" viewBox="0 0 24 24" fill="currentColor"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
+      Industry Days &amp; Trade Shows
+    </button>
+    <button class="layer-toggle" data-layer="productiontimeline">
+      <svg class="dot" viewBox="0 0 24 24" fill="currentColor"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
+      Production Timeline
     </button>
   </div>
   <div style="flex:1"></div>
@@ -628,7 +668,27 @@ let currentYear = new Date().getFullYear();
 let currentMonth = new Date().getMonth();
 let currentViewDate = new Date(); // anchor date for day/4day/week views
 let currentView = 'month';
-const layerVis = { campaigns:true, content:true, alwayson:true, paid:true, holidays:true };
+const layerVis = { paidcampaign:true, organiccampaign:true, sellingseason:true, content:true, alwayson:true, paidcontent:true, holidayevents:true, industrydays:true, productiontimeline:true };
+
+// Map a task's list (t.layer) + content type + status to its sub-layer bucket
+function deriveSublayer(t) {
+  if(t.layer === "campaigns") {
+    const ct = (t.type?.name || (typeof t.type === "string" ? t.type : "") || "").toLowerCase().trim();
+    if(ct === "selling season") return "sellingseason";
+    if(ct === "paid ad campaign" || ct.startsWith("paid ad")) return "paidcampaign";
+    return "organiccampaign";
+  }
+  if(t.layer === "content") return "content";
+  if(t.layer === "alwayson") return "alwayson";
+  if(t.layer === "paid") return "paidcontent";
+  if(t.layer === "holidays") {
+    const s = (t.status || "").toLowerCase().trim();
+    if(s === "production timeline") return "productiontimeline";
+    if(s === "trade shows & industry" || s === "snow events" || s === "shopping events") return "industrydays";
+    return "holidayevents";
+  }
+  return t.layer;
+}
 
 // Open task natively in ClickUp desktop app using the clickup:// protocol
 // Uses a hidden <a> element so the protocol handler fires without navigating
@@ -725,6 +785,7 @@ async function loadTasks() {
     const res = await fetch(`${API}?action=tasks`);
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
     tasks = await res.json();
+    tasks.forEach(t => { t.sublayer = deriveSublayer(t); });
     dot.className = "status-dot";
     dot.title = `Refreshed ${new Date().toLocaleTimeString("en-AU")}`;
     render();
@@ -968,13 +1029,13 @@ function renderDayView(days) {
   headerHtml += `</div>`;
 
   // ── Split tasks: spanning (multi-day) vs single-day ──
-  const LAYER_ORDER = ["holidays","campaigns","content","alwayson","paid"];
+  const LAYER_ORDER = ["holidayevents","industrydays","productiontimeline","sellingseason","organiccampaign","paidcampaign","content","alwayson","paidcontent"];
   const layerRank = l => { const i = LAYER_ORDER.indexOf(l); return i === -1 ? 99 : i; };
   const allVisible = tasks.filter(t => {
-    if(!t.start || !layerVis[t.layer]) return false;
+    if(!t.start || !layerVis[t.sublayer]) return false;
     const tEnd = t.end || t.start;
     return t.start <= lastIso && tEnd >= firstIso;
-  }).sort((a,b) => layerRank(a.layer) - layerRank(b.layer));
+  }).sort((a,b) => layerRank(a.sublayer) - layerRank(b.sublayer));
   const spanTasks   = allVisible.filter(t => (t.end||t.start) > t.start);
   const singleTasks = allVisible.filter(t => (t.end||t.start) === t.start);
 
@@ -991,7 +1052,7 @@ function renderDayView(days) {
       const spanTitleHtml = spanCampaignSuffix
         ? `${escapeHtml(t.title)}<span style="opacity:0.7"> (${escapeHtml(t.campaign)})</span>`
         : escapeHtml(t.title);
-      spanHtml += `<div class="event ${t.layer} span-start span-end" data-taskid="${t.id}"
+      spanHtml += `<div class="event ${t.sublayer} span-start span-end" data-taskid="${t.id}" data-layer="${t.sublayer}"
         style="grid-column:${gridCol};cursor:pointer;margin:1px 2px${_isPastTask(t)?';opacity:0.5':''}"
         onclick="openClickUpTask('${t.id}')"
         onmouseenter="_showTip(event,tasks.find(x=>x.id==='${t.id}'))"
@@ -1022,7 +1083,7 @@ function renderDayView(days) {
       const titleHtml = campaignSuffix
         ? `${escapeHtml(t.title)}<span style="opacity:0.7"> (${escapeHtml(t.campaign)})</span>`
         : escapeHtml(t.title);
-      bodyHtml += `<div class="event ${t.layer}" data-taskid="${t.id}" data-layer="${t.layer}"
+      bodyHtml += `<div class="event ${t.sublayer}" data-taskid="${t.id}" data-layer="${t.sublayer}"
         style="cursor:pointer${_isPastTask(t)?';opacity:0.5':''}"
         onclick="openClickUpTask('${t.id}')"
         onmouseenter="_showTip(event,tasks.find(x=>x.id==='${t.id}'))"
@@ -1107,13 +1168,13 @@ function render() {
   for(let d=1;d<=rem;d++) cells.push({date:new Date(currentYear,currentMonth+1,d),other:true});
 
   // Find which layers have at least one item visible in this view
-  const LAYER_ORDER_M = ["holidays","campaigns","content","alwayson","paid"];
+  const LAYER_ORDER_M = ["holidayevents","industrydays","productiontimeline","sellingseason","organiccampaign","paidcampaign","content","alwayson","paidcontent"];
   const viewStart = cells[0].date, viewEnd = cells[cells.length-1].date;
   const activeLayers = new Set();
   tasks.forEach(t => {
     const s = parseDate(t.start), en = parseDate(t.end)||parseDate(t.start);
     if(!s&&!en) return;
-    if((s||en) <= viewEnd && (en||s) >= viewStart) activeLayers.add(t.layer);
+    if((s||en) <= viewEnd && (en||s) >= viewStart) activeLayers.add(t.sublayer);
   });
 
   for(let w=0; w<cells.length; w+=7) {
@@ -1130,7 +1191,7 @@ function render() {
       tasks.forEach(t => {
         const s = parseDate(t.start), en = parseDate(t.end)||parseDate(t.start);
         if(!s&&!en) return;
-        if(dt >= (s||en) && dt <= (en||s)) counts[t.layer] = (counts[t.layer]||0) + 1;
+        if(dt >= (s||en) && dt <= (en||s)) counts[t.sublayer] = (counts[t.sublayer]||0) + 1;
       });
       LAYER_ORDER_M.forEach(l => { if(counts[l] > weekMaxCounts[l]) weekMaxCounts[l] = counts[l]; });
     }
@@ -1161,14 +1222,14 @@ function render() {
         const s = parseDate(t.start), en = parseDate(t.end) || parseDate(t.start);
         if(!s&&!en) return false;
         return cell.date >= (s||en) && cell.date <= (en||s);
-      }).sort((a,b) => { const r = l => { const i = LAYER_ORDER_M.indexOf(l); return i===-1?99:i; }; return r(a.layer)-r(b.layer); });
+      }).sort((a,b) => { const r = l => { const i = LAYER_ORDER_M.indexOf(l); return i===-1?99:i; }; return r(a.sublayer)-r(b.sublayer); });
 
       // Group events into fixed-position layer slots
       const layerSlots = {};
       LAYER_ORDER_M.forEach(l => { layerSlots[l] = []; });
       dayTasks.forEach(t => {
-        if(!layerSlots[t.layer]) layerSlots[t.layer] = [];
-        layerSlots[t.layer].push(t);
+        if(!layerSlots[t.sublayer]) layerSlots[t.sublayer] = [];
+        layerSlots[t.sublayer].push(t);
       });
 
       LAYER_ORDER_M.forEach(layerName => {
@@ -1195,8 +1256,8 @@ function render() {
         if(isSpan) { spanClass = isStart ? "span-start" : isEnd ? "span-end" : "span-mid"; }
 
         const evDiv = document.createElement("div");
-        evDiv.className = `event ${t.layer} ${spanClass}${isRowStart?" row-start":""}`;
-        evDiv.setAttribute("data-layer", t.layer);
+        evDiv.className = `event ${t.sublayer} ${spanClass}${isRowStart?" row-start":""}`;
+        evDiv.setAttribute("data-layer", t.sublayer);
         evDiv.setAttribute("data-taskid", t.id);
         if(_isPastTask(t)) evDiv.style.opacity = "0.5";
 
