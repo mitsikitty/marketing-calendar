@@ -668,7 +668,7 @@ let currentYear = new Date().getFullYear();
 let currentMonth = new Date().getMonth();
 let currentViewDate = new Date(); // anchor date for day/4day/week views
 let currentView = 'month';
-const layerVis = { paidcampaign:true, organiccampaign:true, sellingseason:true, content:true, alwayson:true, paidcontent:true, holidayevents:true, industrydays:true, productiontimeline:true };
+const layerVis = { paidcampaign:true, organiccampaign:true, sellingseason:true, content:true, alwayson:true, paidcontent:true, holidayevents:true, industrydays:true, productiontimeline:false };
 
 // Map a task's list (t.layer) + content type + status to its sub-layer bucket
 function deriveSublayer(t) {
@@ -766,14 +766,15 @@ function daysBetween(a, b) {
 // ── Scroll ──
 function scrollToCurrentWeek() {
   const grid = document.getElementById("calGrid");
+  if(!grid) return;
   const now = new Date();
   if(now.getFullYear()!==currentYear||now.getMonth()!==currentMonth) return;
   requestAnimationFrame(() => {
     const todayCell = grid.querySelector(".cal-cell.today");
-    if(todayCell) {
-      const weekRow = todayCell.closest(".cal-week");
-      grid.scrollTop = weekRow ? weekRow.offsetTop : todayCell.offsetTop;
-    }
+    if(!todayCell) return;
+    const weekRow = todayCell.closest(".cal-week") || todayCell;
+    const top = weekRow.getBoundingClientRect().top - grid.getBoundingClientRect().top + grid.scrollTop;
+    grid.scrollTop = top;
   });
 }
 
@@ -1040,20 +1041,46 @@ function renderDayView(days) {
   const singleTasks = allVisible.filter(t => (t.end||t.start) === t.start);
 
   // ── Spanning row (one bar per multi-day task) ──
-  let spanHtml = "";
-  if(spanTasks.length) {
-    spanHtml = `<div class="day-view-span-row" style="grid-template-columns:repeat(${cols},1fr)">`;
-    spanTasks.forEach(t => {
+  // Assign each span an explicit grid-row, grouped by layer in LAYER_ORDER so
+  // spans of the same layer stack together and non-overlapping siblings share rows.
+  const spanPositions = new Map(); // task.id -> {row, si, ei}
+  let totalSpanRows = 0;
+  LAYER_ORDER.forEach(layerName => {
+    const layerSpans = spanTasks.filter(t => t.sublayer === layerName);
+    if(!layerSpans.length) return;
+    const subRows = []; // each: [{si,ei}]
+    layerSpans.forEach(t => {
       const tEnd = t.end || t.start;
       let si = isodays.indexOf(t.start); if(si < 0) si = 0;
       let ei = isodays.indexOf(tEnd);    if(ei < 0) ei = cols - 1;
+      let placedRow = -1;
+      for(let r = 0; r < subRows.length; r++) {
+        if(subRows[r].every(s => s.ei < si || s.si > ei)) {
+          subRows[r].push({si,ei});
+          placedRow = r;
+          break;
+        }
+      }
+      if(placedRow === -1) { subRows.push([{si,ei}]); placedRow = subRows.length - 1; }
+      spanPositions.set(t.id, { row: totalSpanRows + placedRow + 1, si, ei });
+    });
+    totalSpanRows += subRows.length;
+  });
+
+  let spanHtml = "";
+  if(spanTasks.length) {
+    spanHtml = `<div class="day-view-span-row" style="grid-template-columns:repeat(${cols},1fr);grid-template-rows:repeat(${totalSpanRows},auto)">`;
+    spanTasks.forEach(t => {
+      const pos = spanPositions.get(t.id);
+      const si = pos.si, ei = pos.ei;
       const gridCol = `${si+1}/${ei+2}`;
+      const gridRow = `${pos.row}`;
       const spanCampaignSuffix = (t.campaign && t.layer !== "campaigns") ? ` (${t.campaign})` : "";
       const spanTitleHtml = spanCampaignSuffix
         ? `${escapeHtml(t.title)}<span style="opacity:0.7"> (${escapeHtml(t.campaign)})</span>`
         : escapeHtml(t.title);
       spanHtml += `<div class="event ${t.sublayer} span-start span-end" data-taskid="${t.id}" data-layer="${t.sublayer}"
-        style="grid-column:${gridCol};cursor:pointer;margin:1px 2px${_isPastTask(t)?';opacity:0.5':''}"
+        style="grid-column:${gridCol};grid-row:${gridRow};cursor:pointer;margin:1px 2px${_isPastTask(t)?';opacity:0.5':''}"
         onclick="openClickUpTask('${t.id}')"
         onmouseenter="_showTip(event,tasks.find(x=>x.id==='${t.id}'))"
         onmousemove="_moveTip(event)" onmouseleave="_hideTip()">
