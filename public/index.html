@@ -1167,6 +1167,24 @@ function renderDayView(days) {
     ${spanHtml}
     ${bodyHtml}
   `;
+
+  // Post-render: equalize body layer slot heights per layer across all columns
+  requestAnimationFrame(() => {
+    const slotMax = {};
+    calWrap.querySelectorAll(".day-view-body .layer-slot").forEach(el => {
+      // Clear any previous min-height so we measure natural height
+      el.style.minHeight = "";
+    });
+    calWrap.querySelectorAll(".day-view-body .layer-slot").forEach(el => {
+      const k = el.getAttribute("data-layer-slot");
+      const h = el.getBoundingClientRect().height;
+      if(!slotMax[k] || h > slotMax[k]) slotMax[k] = h;
+    });
+    calWrap.querySelectorAll(".day-view-body .layer-slot").forEach(el => {
+      const k = el.getAttribute("data-layer-slot");
+      if(slotMax[k]) el.style.minHeight = slotMax[k] + "px";
+    });
+  });
 }
 
 // ── Render ──
