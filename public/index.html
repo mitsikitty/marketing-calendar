@@ -135,7 +135,7 @@ body {
 /* ── Events ── */
 .event {
   display:block; border-radius:3px; padding:2px 5px; margin-bottom:2px;
-  cursor:grab; overflow:hidden; text-decoration:none; border-left:3px solid transparent;
+  cursor:grab; overflow:hidden; text-decoration:none; border-left:3px solid transparent; border-right:3px solid transparent;
   transition:filter .1s, opacity .1s, box-shadow .1s; flex-shrink:0;
   position:relative; user-select:none;
 }
@@ -200,36 +200,36 @@ body {
 .pill-email{ background:#6b7280; color:#fff; }
 .pill-campaign { background:transparent; color:var(--text-muted); border:1px solid var(--border); font-style:italic; }
 
-.event.paidcampaign      { background:var(--paidcampaign-bg);      border-left-color:var(--paidcampaign); }
+.event.paidcampaign      { background:var(--paidcampaign-bg);      border-left-color:var(--paidcampaign); border-right-color:var(--paidcampaign); }
 .event.paidcampaign      .event-title { color:var(--paidcampaign-text); }
 .event.paidcampaign      .resize-handle { color:var(--paidcampaign); }
-.event.organiccampaign   { background:var(--organiccampaign-bg);   border-left-color:var(--organiccampaign); }
+.event.organiccampaign   { background:var(--organiccampaign-bg);   border-left-color:var(--organiccampaign); border-right-color:var(--organiccampaign); }
 .event.organiccampaign   .event-title { color:var(--organiccampaign-text); }
 .event.organiccampaign   .resize-handle { color:var(--organiccampaign); }
-.event.sellingseason     { background:var(--sellingseason-bg);     border-left-color:var(--sellingseason); }
+.event.sellingseason     { background:var(--sellingseason-bg);     border-left-color:var(--sellingseason); border-right-color:var(--sellingseason); }
 .event.sellingseason     .event-title { color:var(--sellingseason-text); }
 .event.sellingseason     .resize-handle { color:var(--sellingseason); }
-.event.content           { background:var(--content-bg);           border-left-color:var(--content); }
+.event.content           { background:var(--content-bg);           border-left-color:var(--content); border-right-color:var(--content); }
 .event.content           .event-title { color:var(--content-text); }
 .event.content           .resize-handle { color:var(--content); }
-.event.alwayson          { background:var(--alwayson-bg);          border-left-color:var(--alwayson); }
+.event.alwayson          { background:var(--alwayson-bg);          border-left-color:var(--alwayson); border-right-color:var(--alwayson); }
 .event.alwayson          .event-title { color:var(--alwayson-text); }
 .event.alwayson          .resize-handle { color:var(--alwayson); }
-.event.paidcontent       { background:var(--paidcontent-bg);       border-left-color:var(--paidcontent); }
+.event.paidcontent       { background:var(--paidcontent-bg);       border-left-color:var(--paidcontent); border-right-color:var(--paidcontent); }
 .event.paidcontent       .event-title { color:var(--paidcontent-text); }
 .event.paidcontent       .resize-handle { color:var(--paidcontent); }
-.event.holidayevents     { background:var(--holidayevents-bg);     border-left-color:var(--holidayevents); }
+.event.holidayevents     { background:var(--holidayevents-bg);     border-left-color:var(--holidayevents); border-right-color:var(--holidayevents); }
 .event.holidayevents     .event-title { color:var(--holidayevents-text); }
 .event.holidayevents     .resize-handle { color:var(--holidayevents); }
-.event.industrydays      { background:var(--industrydays-bg);      border-left-color:var(--industrydays); }
+.event.industrydays      { background:var(--industrydays-bg);      border-left-color:var(--industrydays); border-right-color:var(--industrydays); }
 .event.industrydays      .event-title { color:var(--industrydays-text); }
 .event.industrydays      .resize-handle { color:var(--industrydays); }
-.event.productiontimeline { background:var(--productiontimeline-bg); border-left-color:var(--productiontimeline); }
+.event.productiontimeline { background:var(--productiontimeline-bg); border-left-color:var(--productiontimeline); border-right-color:var(--productiontimeline); }
 .event.productiontimeline .event-title { color:var(--productiontimeline-text); }
 .event.productiontimeline .resize-handle { color:var(--productiontimeline); }
 
-.event.span-start { border-radius:3px 0 0 3px; margin-right:-4px; padding-right:5px; }
-.event.span-mid   { border-radius:0; border-left-color:transparent!important; margin-left:-4px; margin-right:-4px; padding-left:5px; }
+.event.span-start { border-radius:3px 0 0 3px; border-right-color:transparent!important; margin-right:-4px; padding-right:5px; }
+.event.span-mid   { border-radius:0; border-left-color:transparent!important; border-right-color:transparent!important; margin-left:-4px; margin-right:-4px; padding-left:5px; padding-right:5px; }
 .event.span-end   { border-radius:0 3px 3px 0; border-left-color:transparent!important; margin-left:-4px; padding-left:5px; }
 .event.span-mid .event-pills, .event.span-end .event-pills { display:none; }
 .event.span-mid .resize-handle-left,
