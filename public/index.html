@@ -419,16 +419,18 @@ body {
 }
 .day-view-col-head.today-col .big-num { color:#7c3aed; }
 .day-view-col-head.today-col { outline:2px solid #7c3aed; outline-offset:-2px; }
-.day-view-span-row { display:none; }
-.day-view-body { flex:1; overflow-y:auto; position:relative; display:flex; flex-direction:column; background:var(--surface); padding-bottom:28px; }
-.day-view-body-bg { position:absolute; inset:0; display:grid; pointer-events:none; }
-.day-view-col-bg { border-right:1px solid var(--border); pointer-events:auto; cursor:pointer; }
-.day-view-col-bg:last-child { border-right:none; }
-.day-view-col-bg.today-col { background:rgba(124,58,237,0.03); outline:2px solid #7c3aed; outline-offset:-2px; }
-.day-layer-row { display:grid; position:relative; gap:0; padding:1px 0; }
-.day-layer-row.hidden { display:none!important; }
-.day-layer-row > div { min-width:0; }
-.day-layer-row .event { margin:0 2px; cursor:pointer; }
+.day-view-span-area .event { margin:1px 2px; cursor:pointer; }
+.day-view-body { flex:1; overflow-y:auto; background:var(--surface); padding-bottom:28px; }
+.day-view-col { border-right:1px solid var(--border); padding:4px 2px; min-height:60px; display:flex; flex-direction:column; gap:2px; }
+.day-view-col:last-child { border-right:none; }
+.day-view-col.today-col { background:rgba(124,58,237,0.03); outline:2px solid #7c3aed; outline-offset:-2px; }
+.day-view-col .event { cursor:pointer; }
+.day-add-btn {
+  margin-top:auto; width:100%; border:none; background:transparent; color:var(--text-muted);
+  font-size:18px; cursor:pointer; padding:4px; border-radius:4px; opacity:0; transition:opacity .15s;
+}
+.day-view-col:hover .day-add-btn { opacity:1; }
+.day-add-btn:hover { background:var(--hover); }
 .day-view-date-nav {
   display:flex; align-items:center; justify-content:center; gap:8px;
   padding:8px; background:var(--surface); border-bottom:1px solid var(--border); flex-shrink:0;
@@ -1017,101 +1019,99 @@ function renderDayView(days) {
   });
   headerHtml += `</div>`;
 
-  // ── Unified per-layer grid: spans and single-day events share the same rows ──
+  // ── Spans: one compact grid at top, all layers mixed, packed by overlap ──
   const LAYER_ORDER = ["holidayevents","industrydays","productiontimeline","sellingseason","organiccampaign","paidcampaign","content","alwayson","paidcontent"];
+  const layerRank = l => { const i = LAYER_ORDER.indexOf(l); return i === -1 ? 99 : i; };
   const allVisible = tasks.filter(t => {
     if(!t.start || !layerVis[t.sublayer]) return false;
     const tEnd = t.end || t.start;
     return t.start <= lastIso && tEnd >= firstIso;
   });
+  const spanTasks = allVisible.filter(t => (t.end||t.start) > t.start)
+    .sort((a,b) => layerRank(a.sublayer) - layerRank(b.sublayer) || a.start.localeCompare(b.start));
+  const singleTasks = allVisible.filter(t => (t.end||t.start) === t.start)
+    .sort((a,b) => layerRank(a.sublayer) - layerRank(b.sublayer));
 
-  // Group all tasks by sublayer
-  const tasksByLayer = {};
-  LAYER_ORDER.forEach(l => { tasksByLayer[l] = []; });
-  allVisible.forEach(t => { (tasksByLayer[t.sublayer] = tasksByLayer[t.sublayer] || []).push(t); });
-
-  // Render a single event (span or single-day)
-  const renderEvent = (t, isSpan, si, ei) => {
-    const typeName = t.type?.name||(typeof t.type==="string"?t.type:"");
-    const skipTypes = new Set(["Campaign","Always On","Selling Season"]);
-    const showType = !isSpan && typeName && !skipTypes.has(typeName);
-    const tc = t.type?.color;
-    const pillHtml = showType
-      ? `<div class="event-pills"><span class="pill${tc?"":" "+typePillClass(typeName)}"${tc?` style="background:${tc};color:${contrastColor(tc)}"`:""}>${escapeHtml(typeName)}</span></div>`
-      : "";
-    const campaignSuffix = (t.campaign && t.layer !== "campaigns") ? ` (${t.campaign})` : "";
-    const titleHtml = campaignSuffix
-      ? `${escapeHtml(t.title)}<span style="opacity:0.7"> (${escapeHtml(t.campaign)})</span>`
-      : escapeHtml(t.title);
-    const spanCls = isSpan ? " span-start span-end" : "";
-    const locPills = !isSpan ? (t.locations||[]).map(loc => {
-      const locName = loc?.name||(typeof loc==="string"?loc:"");
-      if(!locName) return "";
-      const locColor = loc?.color;
-      return locColor
-        ? `<span class="pill" style="background:${locColor};color:${contrastColor(locColor)}">${escapeHtml(locName)}</span>`
-        : `<span class="pill ${locPillClass(locName)}">${escapeHtml(locName)}</span>`;
-    }).join("") : "";
-    const allPills = (showType || locPills) ? `<div class="event-pills">${showType ? (tc ? `<span class="pill" style="background:${tc};color:${contrastColor(tc)}">${escapeHtml(typeName)}</span>` : `<span class="pill ${typePillClass(typeName)}">${escapeHtml(typeName)}</span>`) : ""}${locPills}</div>` : "";
-    return `<div class="event ${t.sublayer}${spanCls}" data-taskid="${t.id}" data-layer="${t.sublayer}"
-      style="cursor:pointer;margin:1px 2px${_isPastTask(t)?';opacity:0.5':''}"
-      onclick="openClickUpTask('${t.id}')"
-      onmouseenter="_showTip(event,tasks.find(x=>x.id==='${t.id}'))"
-      onmousemove="_moveTip(event)" onmouseleave="_hideTip()">
-      ${(t.status && t.layer !== "campaigns" && t.layer !== "holidays") ? `<span class="event-status" style="background:${t.statusColor||'#6b7280'};color:${contrastColor(t.statusColor||'#6b7280')}">${escapeHtml(sentenceCase(t.status))}</span>` : ''}
-      <div class="event-title">${titleHtml}</div>
-      ${allPills}
-    </div>`;
-  };
-
-  // Build unified body with per-layer rows
-  let bodyHtml = `<div class="day-view-body">`;
-  const todayIdx = days.findIndex(d => isSameDay(d, today));
-  bodyHtml += `<div class="day-view-body-bg" style="grid-template-columns:repeat(${cols},1fr)">`;
-  for(let i=0;i<cols;i++) {
-    bodyHtml += `<div class="day-view-col-bg${i===todayIdx?" today-col":""}" data-date="${isodays[i]}" onclick="openCreate(new Date('${isodays[i]}'))"></div>`;
-  }
-  bodyHtml += `</div>`;
-
-  LAYER_ORDER.forEach(layerName => {
-    const layerTasks = tasksByLayer[layerName];
-    if(!layerTasks || !layerTasks.length) return;
-    const hiddenCls = layerVis[layerName] ? "" : " hidden";
-
-    // Place tasks into sub-rows; spans occupy column ranges, singles occupy one col.
-    // Non-overlapping tasks share the same sub-row.
-    const subRows = []; // each: [{si, ei, task, isSpan}]
-    // Sort: spans first (longer first), then singles
-    const sorted = [...layerTasks].sort((a,b) => {
-      const aSpan = (a.end||a.start) > a.start ? 1 : 0;
-      const bSpan = (b.end||b.start) > b.start ? 1 : 0;
-      if(aSpan !== bSpan) return bSpan - aSpan; // spans first
-      return a.start.localeCompare(b.start);
-    });
-    sorted.forEach(t => {
-      const tEnd = t.end || t.start;
-      const isSpan = tEnd > t.start;
-      let si = isodays.indexOf(t.start); if(si < 0) si = 0;
-      let ei = isodays.indexOf(tEnd);    if(ei < 0) ei = cols - 1;
-      let placed = false;
-      for(const row of subRows) {
-        if(row.every(item => item.ei < si || item.si > ei)) {
-          row.push({si, ei, task: t, isSpan});
-          placed = true;
-          break;
-        }
+  // Pack spans into sub-rows (non-overlapping share rows)
+  const spanSubRows = [];
+  spanTasks.forEach(t => {
+    const tEnd = t.end || t.start;
+    let si = isodays.indexOf(t.start); if(si < 0) si = 0;
+    let ei = isodays.indexOf(tEnd);    if(ei < 0) ei = cols - 1;
+    let placed = false;
+    for(const row of spanSubRows) {
+      if(row.every(item => item.ei < si || item.si > ei)) {
+        row.push({si, ei, task: t});
+        placed = true;
+        break;
       }
-      if(!placed) subRows.push([{si, ei, task: t, isSpan}]);
-    });
+    }
+    if(!placed) spanSubRows.push([{si, ei, task: t}]);
+  });
 
-    subRows.forEach(row => {
-      bodyHtml += `<div class="day-layer-row${hiddenCls}" data-layer-slot="${layerName}" style="grid-template-columns:repeat(${cols},1fr)">`;
-      row.forEach(({si, ei, task, isSpan}) => {
-        const gridCol = isSpan ? `${si+1}/${ei+2}` : `${si+1}`;
-        bodyHtml += `<div style="grid-column:${gridCol}">${renderEvent(task, isSpan, si, ei)}</div>`;
+  let spanHtml = "";
+  if(spanSubRows.length) {
+    spanHtml = `<div class="day-view-span-area" style="display:grid;grid-template-columns:repeat(${cols},1fr);grid-template-rows:repeat(${spanSubRows.length},auto);background:var(--surface);flex-shrink:0;padding:2px 0;border-bottom:1px solid var(--border)">`;
+    spanSubRows.forEach((row, ri) => {
+      row.forEach(({si, ei, task: t}) => {
+        const gridCol = `${si+1}/${ei+2}`;
+        const campaignSuffix = (t.campaign && t.layer !== "campaigns") ? ` (${t.campaign})` : "";
+        const titleHtml = campaignSuffix
+          ? `${escapeHtml(t.title)}<span style="opacity:0.7"> (${escapeHtml(t.campaign)})</span>`
+          : escapeHtml(t.title);
+        spanHtml += `<div class="event ${t.sublayer} span-start span-end" data-taskid="${t.id}" data-layer="${t.sublayer}"
+          style="grid-column:${gridCol};grid-row:${ri+1};cursor:pointer;margin:1px 2px${_isPastTask(t)?';opacity:0.5':''}"
+          onclick="openClickUpTask('${t.id}')"
+          onmouseenter="_showTip(event,tasks.find(x=>x.id==='${t.id}'))"
+          onmousemove="_moveTip(event)" onmouseleave="_hideTip()">
+          ${(t.status && t.layer !== "campaigns" && t.layer !== "holidays") ? `<span class="event-status" style="background:${t.statusColor||'#6b7280'};color:${contrastColor(t.statusColor||'#6b7280')}">${escapeHtml(sentenceCase(t.status))}</span>` : ''}
+          <div class="event-title">${titleHtml}</div>
+        </div>`;
       });
-      bodyHtml += `</div>`;
     });
+    spanHtml += `</div>`;
+  }
+
+  // ── Singles: per-column natural flow, sorted by layer ──
+  let bodyHtml = `<div class="day-view-body" style="display:grid;grid-template-columns:repeat(${cols},1fr);flex:1;overflow-y:auto;background:var(--surface)">`;
+  days.forEach((d, idx) => {
+    const isToday = isSameDay(d, today);
+    const iso = isodays[idx];
+    const dayTasks = singleTasks.filter(t => t.start === iso);
+    bodyHtml += `<div class="day-view-col${isToday?" today-col":""}" data-date="${iso}">`;
+    dayTasks.forEach(t => {
+      const typeName = t.type?.name||(typeof t.type==="string"?t.type:"");
+      const skipTypes = new Set(["Campaign","Always On","Selling Season"]);
+      const showType = typeName && !skipTypes.has(typeName);
+      const tc = t.type?.color;
+      const pillHtml = showType
+        ? `<div class="event-pills"><span class="pill${tc?"":" "+typePillClass(typeName)}"${tc?` style="background:${tc};color:${contrastColor(tc)}"`:""}>${escapeHtml(typeName)}</span></div>`
+        : "";
+      const campaignSuffix = (t.campaign && t.layer !== "campaigns") ? ` (${t.campaign})` : "";
+      const titleHtml = campaignSuffix
+        ? `${escapeHtml(t.title)}<span style="opacity:0.7"> (${escapeHtml(t.campaign)})</span>`
+        : escapeHtml(t.title);
+      const locPills = (t.locations||[]).map(loc => {
+        const locName = loc?.name||(typeof loc==="string"?loc:"");
+        if(!locName) return "";
+        const locColor = loc?.color;
+        return locColor
+          ? `<span class="pill" style="background:${locColor};color:${contrastColor(locColor)}">${escapeHtml(locName)}</span>`
+          : `<span class="pill ${locPillClass(locName)}">${escapeHtml(locName)}</span>`;
+      }).join("");
+      const allPills = (showType || locPills) ? `<div class="event-pills">${showType ? (tc ? `<span class="pill" style="background:${tc};color:${contrastColor(tc)}">${escapeHtml(typeName)}</span>` : `<span class="pill ${typePillClass(typeName)}">${escapeHtml(typeName)}</span>`) : ""}${locPills}</div>` : "";
+      bodyHtml += `<div class="event ${t.sublayer}" data-taskid="${t.id}" data-layer="${t.sublayer}"
+        style="cursor:pointer${_isPastTask(t)?';opacity:0.5':''}"
+        onclick="openClickUpTask('${t.id}')"
+        onmouseenter="_showTip(event,tasks.find(x=>x.id==='${t.id}'))"
+        onmousemove="_moveTip(event)" onmouseleave="_hideTip()">
+        ${(t.status && t.layer !== "campaigns" && t.layer !== "holidays") ? `<span class="event-status" style="background:${t.statusColor||'#6b7280'};color:${contrastColor(t.statusColor||'#6b7280')}">${escapeHtml(sentenceCase(t.status))}</span>` : ''}
+        <div class="event-title">${titleHtml}</div>
+        ${allPills}
+      </div>`;
+    });
+    bodyHtml += `<button class="day-add-btn" onclick="openCreate(new Date('${iso}'))">+</button>`;
+    bodyHtml += `</div>`;
   });
   bodyHtml += `</div>`;
 
@@ -1124,6 +1124,7 @@ function renderDayView(days) {
       <span>${dateLabel}</span>
     </div>
     ${headerHtml}
+    ${spanHtml}
     ${bodyHtml}
   `;
 
