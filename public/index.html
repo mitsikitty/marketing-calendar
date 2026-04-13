@@ -419,11 +419,7 @@ body {
 }
 .day-view-col-head.today-col .big-num { color:#7c3aed; }
 .day-view-col-head.today-col { outline:2px solid #7c3aed; outline-offset:-2px; }
-.day-view-span-row {
-  display:grid; background:var(--surface); flex-shrink:0;
-  padding:3px 4px; border-bottom:1px solid var(--border); gap:2px;
-}
-.day-view-span-row .event { margin:0; }
+.day-view-span-row { display:none; }
 .day-view-body { flex:1; overflow-y:auto; position:relative; display:flex; flex-direction:column; background:var(--surface); padding-bottom:28px; }
 .day-view-body-bg { position:absolute; inset:0; display:grid; pointer-events:none; }
 .day-view-col-bg { border-right:1px solid var(--border); pointer-events:auto; cursor:pointer; }
@@ -1021,83 +1017,24 @@ function renderDayView(days) {
   });
   headerHtml += `</div>`;
 
-  // ── Split tasks: spanning (multi-day) vs single-day ──
+  // ── Unified per-layer grid: spans and single-day events share the same rows ──
   const LAYER_ORDER = ["holidayevents","industrydays","productiontimeline","sellingseason","organiccampaign","paidcampaign","content","alwayson","paidcontent"];
-  const layerRank = l => { const i = LAYER_ORDER.indexOf(l); return i === -1 ? 99 : i; };
   const allVisible = tasks.filter(t => {
     if(!t.start || !layerVis[t.sublayer]) return false;
     const tEnd = t.end || t.start;
     return t.start <= lastIso && tEnd >= firstIso;
-  }).sort((a,b) => layerRank(a.sublayer) - layerRank(b.sublayer));
-  const spanTasks   = allVisible.filter(t => (t.end||t.start) > t.start);
-  const singleTasks = allVisible.filter(t => (t.end||t.start) === t.start);
-
-  // ── Spanning row (one bar per multi-day task) ──
-  // Assign each span an explicit grid-row, grouped by layer in LAYER_ORDER so
-  // spans of the same layer stack together and non-overlapping siblings share rows.
-  const spanPositions = new Map(); // task.id -> {row, si, ei}
-  let totalSpanRows = 0;
-  LAYER_ORDER.forEach(layerName => {
-    const layerSpans = spanTasks.filter(t => t.sublayer === layerName);
-    if(!layerSpans.length) return;
-    const subRows = []; // each: [{si,ei}]
-    layerSpans.forEach(t => {
-      const tEnd = t.end || t.start;
-      let si = isodays.indexOf(t.start); if(si < 0) si = 0;
-      let ei = isodays.indexOf(tEnd);    if(ei < 0) ei = cols - 1;
-      let placedRow = -1;
-      for(let r = 0; r < subRows.length; r++) {
-        if(subRows[r].every(s => s.ei < si || s.si > ei)) {
-          subRows[r].push({si,ei});
-          placedRow = r;
-          break;
-        }
-      }
-      if(placedRow === -1) { subRows.push([{si,ei}]); placedRow = subRows.length - 1; }
-      spanPositions.set(t.id, { row: totalSpanRows + placedRow + 1, si, ei });
-    });
-    totalSpanRows += subRows.length;
   });
 
-  let spanHtml = "";
-  if(spanTasks.length) {
-    spanHtml = `<div class="day-view-span-row" style="grid-template-columns:repeat(${cols},1fr);grid-template-rows:repeat(${totalSpanRows},auto)">`;
-    spanTasks.forEach(t => {
-      const pos = spanPositions.get(t.id);
-      const si = pos.si, ei = pos.ei;
-      const gridCol = `${si+1}/${ei+2}`;
-      const gridRow = `${pos.row}`;
-      const spanCampaignSuffix = (t.campaign && t.layer !== "campaigns") ? ` (${t.campaign})` : "";
-      const spanTitleHtml = spanCampaignSuffix
-        ? `${escapeHtml(t.title)}<span style="opacity:0.7"> (${escapeHtml(t.campaign)})</span>`
-        : escapeHtml(t.title);
-      spanHtml += `<div class="event ${t.sublayer} span-start span-end" data-taskid="${t.id}" data-layer="${t.sublayer}"
-        style="grid-column:${gridCol};grid-row:${gridRow};cursor:pointer;margin:1px 2px${_isPastTask(t)?';opacity:0.5':''}"
-        onclick="openClickUpTask('${t.id}')"
-        onmouseenter="_showTip(event,tasks.find(x=>x.id==='${t.id}'))"
-        onmousemove="_moveTip(event)" onmouseleave="_hideTip()">
-        ${(t.status && t.layer !== "campaigns" && t.layer !== "holidays") ? `<span class="event-status" style="background:${t.statusColor||'#6b7280'};color:${contrastColor(t.statusColor||'#6b7280')}">${escapeHtml(sentenceCase(t.status))}</span>` : ''}
-        <div class="event-title">${spanTitleHtml}</div>
-      </div>`;
-    });
-    spanHtml += `</div>`;
-  }
+  // Group all tasks by sublayer
+  const tasksByLayer = {};
+  LAYER_ORDER.forEach(l => { tasksByLayer[l] = []; });
+  allVisible.forEach(t => { (tasksByLayer[t.sublayer] = tasksByLayer[t.sublayer] || []).push(t); });
 
-  // ── Body: each visible layer is its own N-col grid row so same-layer items
-  //    stay on the exact same visual row across all days regardless of height.
-  const bodyByLayer = {};
-  LAYER_ORDER.forEach(l => { bodyByLayer[l] = {}; }); // layer -> { colIdx -> [tasks] }
-  singleTasks.forEach(t => {
-    const ci = isodays.indexOf(t.start);
-    if(ci < 0) return;
-    bodyByLayer[t.sublayer] = bodyByLayer[t.sublayer] || {};
-    (bodyByLayer[t.sublayer][ci] = bodyByLayer[t.sublayer][ci] || []).push(t);
-  });
-
-  const renderBodyEvent = (t) => {
+  // Render a single event (span or single-day)
+  const renderEvent = (t, isSpan, si, ei) => {
     const typeName = t.type?.name||(typeof t.type==="string"?t.type:"");
     const skipTypes = new Set(["Campaign","Always On","Selling Season"]);
-    const showType = typeName && !skipTypes.has(typeName);
+    const showType = !isSpan && typeName && !skipTypes.has(typeName);
     const tc = t.type?.color;
     const pillHtml = showType
       ? `<div class="event-pills"><span class="pill${tc?"":" "+typePillClass(typeName)}"${tc?` style="background:${tc};color:${contrastColor(tc)}"`:""}>${escapeHtml(typeName)}</span></div>`
@@ -1106,19 +1043,29 @@ function renderDayView(days) {
     const titleHtml = campaignSuffix
       ? `${escapeHtml(t.title)}<span style="opacity:0.7"> (${escapeHtml(t.campaign)})</span>`
       : escapeHtml(t.title);
-    return `<div class="event ${t.sublayer}" data-taskid="${t.id}" data-layer="${t.sublayer}"
+    const spanCls = isSpan ? " span-start span-end" : "";
+    const locPills = !isSpan ? (t.locations||[]).map(loc => {
+      const locName = loc?.name||(typeof loc==="string"?loc:"");
+      if(!locName) return "";
+      const locColor = loc?.color;
+      return locColor
+        ? `<span class="pill" style="background:${locColor};color:${contrastColor(locColor)}">${escapeHtml(locName)}</span>`
+        : `<span class="pill ${locPillClass(locName)}">${escapeHtml(locName)}</span>`;
+    }).join("") : "";
+    const allPills = (showType || locPills) ? `<div class="event-pills">${showType ? (tc ? `<span class="pill" style="background:${tc};color:${contrastColor(tc)}">${escapeHtml(typeName)}</span>` : `<span class="pill ${typePillClass(typeName)}">${escapeHtml(typeName)}</span>`) : ""}${locPills}</div>` : "";
+    return `<div class="event ${t.sublayer}${spanCls}" data-taskid="${t.id}" data-layer="${t.sublayer}"
       style="cursor:pointer;margin:1px 2px${_isPastTask(t)?';opacity:0.5':''}"
       onclick="openClickUpTask('${t.id}')"
       onmouseenter="_showTip(event,tasks.find(x=>x.id==='${t.id}'))"
       onmousemove="_moveTip(event)" onmouseleave="_hideTip()">
       ${(t.status && t.layer !== "campaigns" && t.layer !== "holidays") ? `<span class="event-status" style="background:${t.statusColor||'#6b7280'};color:${contrastColor(t.statusColor||'#6b7280')}">${escapeHtml(sentenceCase(t.status))}</span>` : ''}
       <div class="event-title">${titleHtml}</div>
-      ${pillHtml}
+      ${allPills}
     </div>`;
   };
 
+  // Build unified body with per-layer rows
   let bodyHtml = `<div class="day-view-body">`;
-  // Today-column highlight background (stretches full body height)
   const todayIdx = days.findIndex(d => isSameDay(d, today));
   bodyHtml += `<div class="day-view-body-bg" style="grid-template-columns:repeat(${cols},1fr)">`;
   for(let i=0;i<cols;i++) {
@@ -1127,23 +1074,44 @@ function renderDayView(days) {
   bodyHtml += `</div>`;
 
   LAYER_ORDER.forEach(layerName => {
-    const byCol = bodyByLayer[layerName];
-    if(!byCol || !Object.keys(byCol).length) return;
-    const maxSub = Math.max(...Object.values(byCol).map(a => a.length));
+    const layerTasks = tasksByLayer[layerName];
+    if(!layerTasks || !layerTasks.length) return;
     const hiddenCls = layerVis[layerName] ? "" : " hidden";
-    for(let sub = 0; sub < maxSub; sub++) {
-      bodyHtml += `<div class="day-layer-row${hiddenCls}" data-layer-slot="${layerName}" style="grid-template-columns:repeat(${cols},1fr)">`;
-      for(let c = 0; c < cols; c++) {
-        const arr = byCol[c] || [];
-        const t = arr[sub];
-        if(t) {
-          bodyHtml += `<div style="grid-column:${c+1}">${renderBodyEvent(t)}</div>`;
-        } else {
-          bodyHtml += `<div style="grid-column:${c+1}"></div>`;
+
+    // Place tasks into sub-rows; spans occupy column ranges, singles occupy one col.
+    // Non-overlapping tasks share the same sub-row.
+    const subRows = []; // each: [{si, ei, task, isSpan}]
+    // Sort: spans first (longer first), then singles
+    const sorted = [...layerTasks].sort((a,b) => {
+      const aSpan = (a.end||a.start) > a.start ? 1 : 0;
+      const bSpan = (b.end||b.start) > b.start ? 1 : 0;
+      if(aSpan !== bSpan) return bSpan - aSpan; // spans first
+      return a.start.localeCompare(b.start);
+    });
+    sorted.forEach(t => {
+      const tEnd = t.end || t.start;
+      const isSpan = tEnd > t.start;
+      let si = isodays.indexOf(t.start); if(si < 0) si = 0;
+      let ei = isodays.indexOf(tEnd);    if(ei < 0) ei = cols - 1;
+      let placed = false;
+      for(const row of subRows) {
+        if(row.every(item => item.ei < si || item.si > ei)) {
+          row.push({si, ei, task: t, isSpan});
+          placed = true;
+          break;
         }
       }
+      if(!placed) subRows.push([{si, ei, task: t, isSpan}]);
+    });
+
+    subRows.forEach(row => {
+      bodyHtml += `<div class="day-layer-row${hiddenCls}" data-layer-slot="${layerName}" style="grid-template-columns:repeat(${cols},1fr)">`;
+      row.forEach(({si, ei, task, isSpan}) => {
+        const gridCol = isSpan ? `${si+1}/${ei+2}` : `${si+1}`;
+        bodyHtml += `<div style="grid-column:${gridCol}">${renderEvent(task, isSpan, si, ei)}</div>`;
+      });
       bodyHtml += `</div>`;
-    }
+    });
   });
   bodyHtml += `</div>`;
 
@@ -1156,7 +1124,6 @@ function renderDayView(days) {
       <span>${dateLabel}</span>
     </div>
     ${headerHtml}
-    ${spanHtml}
     ${bodyHtml}
   `;
 
