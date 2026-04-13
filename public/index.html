@@ -695,7 +695,7 @@ function openInClickUp() {
 }
 
 // ── Theme ──
-let forceDark = false;
+let forceDark = null;
 const themeBtn = document.getElementById("themeBtn");
 function isDark() { return forceDark !== null ? forceDark : window.matchMedia("(prefers-color-scheme:dark)").matches; }
 function applyTheme() {
