@@ -1211,23 +1211,61 @@ function render() {
     const weekDiv = document.createElement("div");
     weekDiv.className = "cal-week";
 
-    // Pre-compute max item count per layer for this week row
-    const weekMaxCounts = {};
-    LAYER_ORDER_M.forEach(l => { weekMaxCounts[l] = 0; });
-    for(let d=0; d<7 && w+d<cells.length; d++) {
-      const dt = cells[w+d].date;
-      const counts = {};
-      LAYER_ORDER_M.forEach(l => { counts[l] = 0; });
-      tasks.forEach(t => {
-        const s = parseDate(t.start), en = parseDate(t.end)||parseDate(t.start);
-        if(!s&&!en) return;
-        if(dt >= (s||en) && dt <= (en||s)) counts[t.sublayer] = (counts[t.sublayer]||0) + 1;
-      });
-      LAYER_ORDER_M.forEach(l => { if(counts[l] > weekMaxCounts[l]) weekMaxCounts[l] = counts[l]; });
-    }
+    // ── Week-level span packing: assign fixed row indices per sublayer ──
+    const weekCells = [];
+    for(let d=0; d<7 && w+d<cells.length; d++) weekCells.push(cells[w+d]);
+    const weekStart = weekCells[0].date, weekEnd = weekCells[weekCells.length-1].date;
 
+    const weekSpanRows = {};  // sublayer -> [[{task,si,ei}, ...], ...]
+    const weekSinglesByDay = {}; // sublayer -> [[] x 7]
+    const weekSlotHeight = {}; // sublayer -> total rows needed
+
+    LAYER_ORDER_M.forEach(layer => {
+      const layerTasks = tasks.filter(t => {
+        if(t.sublayer !== layer) return false;
+        const s = parseDate(t.start), en = parseDate(t.end)||parseDate(t.start);
+        if(!s&&!en) return false;
+        return (s||en) <= weekEnd && (en||s) >= weekStart;
+      });
+      const spans = [], singles = [];
+      layerTasks.forEach(t => {
+        const s = parseDate(t.start), en = parseDate(t.end)||parseDate(t.start);
+        (s && en && !isSameDay(s,en)) ? spans.push(t) : singles.push(t);
+      });
+      spans.sort((a,b) => a.start.localeCompare(b.start));
+
+      // Pack spans into sub-rows (non-overlapping share a row)
+      const subRows = [];
+      spans.forEach(t => {
+        const s = parseDate(t.start), en = parseDate(t.end)||parseDate(t.start);
+        let si = weekCells.findIndex(c => isSameDay(c.date, s));
+        let ei = weekCells.findIndex(c => isSameDay(c.date, en));
+        if(si < 0) si = 0;
+        if(ei < 0) ei = weekCells.length - 1;
+        let placed = false;
+        for(const row of subRows) {
+          if(row.every(item => item.ei < si || item.si > ei)) { row.push({task:t, si, ei}); placed = true; break; }
+        }
+        if(!placed) subRows.push([{task:t, si, ei}]);
+      });
+      weekSpanRows[layer] = subRows;
+
+      // Pre-bucket singles by day column
+      const byDay = weekCells.map(() => []);
+      singles.forEach(t => {
+        const s = parseDate(t.start)||parseDate(t.end);
+        const idx = weekCells.findIndex(c => isSameDay(c.date, s));
+        if(idx >= 0) byDay[idx].push(t);
+      });
+      weekSinglesByDay[layer] = byDay;
+
+      const maxSingles = Math.max(0, ...byDay.map(arr => arr.length));
+      weekSlotHeight[layer] = subRows.length + maxSingles;
+    });
+
+    // ── Render cells ──
     for(let d=0; d<7 && w+d<cells.length; d++) {
-      const cell = cells[w+d];
+      const cell = weekCells[d];
       const div = document.createElement("div");
       div.className = "cal-cell"+(cell.other?" other-month":"")+(isSameDay(cell.date,today)?" today":"");
       div.dataset.date = fmtDate(cell.date);
@@ -1248,67 +1286,22 @@ function render() {
         if(ev.target === div || ev.target === numDiv) openCreate(cell.date);
       });
 
-      const dayTasks = tasks.filter(t => {
-        const s = parseDate(t.start), en = parseDate(t.end) || parseDate(t.start);
-        if(!s&&!en) return false;
-        return cell.date >= (s||en) && cell.date <= (en||s);
-      }).sort((a,b) => { const r = l => { const i = LAYER_ORDER_M.indexOf(l); return i===-1?99:i; }; return r(a.sublayer)-r(b.sublayer); });
-
-      // Group events into fixed-position layer slots
-      const layerSlots = {};
-      LAYER_ORDER_M.forEach(l => { layerSlots[l] = []; });
-      dayTasks.forEach(t => {
-        if(!layerSlots[t.sublayer]) layerSlots[t.sublayer] = [];
-        layerSlots[t.sublayer].push(t);
-      });
-
-      LAYER_ORDER_M.forEach(layerName => {
-        if(!activeLayers.has(layerName)) return;
-        const slotTasks = layerSlots[layerName];
-        const slotDiv = document.createElement("div");
-        slotDiv.className = "layer-slot" + ((!slotTasks || !slotTasks.length) ? " layer-slot-empty" : "");
-        slotDiv.setAttribute("data-layer-slot", layerName);
-        if(!layerVis[layerName]) slotDiv.classList.add("hidden");
-        // Set fixed min-height based on max items in this layer across the week row
-        const maxC = weekMaxCounts[layerName] || 0;
-        if(maxC > 0) slotDiv.style.minHeight = (maxC * 19 + Math.max(0, maxC - 1) * 2) + "px";
-        div.appendChild(slotDiv);
-        if(!slotTasks || !slotTasks.length) return;
-
-      slotTasks.forEach(t => {
-        const s = parseDate(t.start), en = parseDate(t.end)||parseDate(t.start);
-        const isStart = isSameDay(cell.date, s||en);
-        const isEnd   = isSameDay(cell.date, en||s);
-        const isSpan  = s && en && !isSameDay(s,en);
-        // Row-start: first cell of week (Monday col, index 0) for a mid-span
-        const isRowStart = isSpan && !isStart && d === 0;
+      // Helper to build a full event DOM node
+      function _mkEvent(t, isSpan, isStart, isEnd, isRowStart) {
         let spanClass = "";
         if(isSpan) { spanClass = isStart ? "span-start" : isEnd ? "span-end" : "span-mid"; }
-
         const evDiv = document.createElement("div");
         evDiv.className = `event ${t.sublayer} ${spanClass}${isRowStart?" row-start":""}`;
         evDiv.setAttribute("data-layer", t.sublayer);
         evDiv.setAttribute("data-taskid", t.id);
         if(_isPastTask(t)) evDiv.style.opacity = "0.5";
-
-        evDiv.addEventListener("click", ev => {
-          ev.stopPropagation();
-          if(_drag) return;
-          _hideTip();
-          openClickUpTask(t.id);
-        });
-
+        evDiv.addEventListener("click", ev => { ev.stopPropagation(); if(_drag) return; _hideTip(); openClickUpTask(t.id); });
         evDiv.addEventListener("mouseenter", ev => { if(!_drag) _showTip(ev, t); });
         evDiv.addEventListener("mousemove", _moveTip);
         evDiv.addEventListener("mouseleave", _hideTip);
-
-        evDiv.addEventListener("mousedown", ev => {
-          if(ev.target.classList.contains("resize-handle")) return;
-          _startDrag(ev, t, "move");
-        });
+        evDiv.addEventListener("mousedown", ev => { if(ev.target.classList.contains("resize-handle")) return; _startDrag(ev, t, "move"); });
 
         const showTitle = !isSpan || isStart || isRowStart;
-
         if(showTitle) {
           if(t.status && t.layer !== "campaigns" && t.layer !== "holidays") {
             const statusSpan = document.createElement("span");
@@ -1320,7 +1313,6 @@ function render() {
           }
           const titleDiv = document.createElement("div");
           titleDiv.className = "event-title";
-          // Title + campaign in brackets on same line (skip suffix for campaign-layer tasks)
           const campaignSuffix = (t.campaign && t.layer !== "campaigns") ? ` (${t.campaign})` : "";
           if(campaignSuffix) {
             titleDiv.innerHTML = escapeHtml(t.title) + `<span style="opacity:0.7"> (${escapeHtml(t.campaign)})</span>`;
@@ -1380,10 +1372,48 @@ function render() {
           rRight.addEventListener("mousedown", ev => { ev.stopPropagation(); _startDrag(ev, t, "resize-right"); });
           evDiv.appendChild(rRight);
         }
+        return evDiv;
+      }
 
-        slotDiv.appendChild(evDiv);
-      }); // end slotTasks.forEach
-      }); // end LAYER_ORDER_M.forEach
+      // ── Render layer slots with week-level span coordination ──
+      LAYER_ORDER_M.forEach(layerName => {
+        if(!activeLayers.has(layerName)) return;
+
+        const spanRows = weekSpanRows[layerName] || [];
+        const daySingles = (weekSinglesByDay[layerName] || [])[d] || [];
+        const totalSlots = weekSlotHeight[layerName] || 0;
+        const hasContent = spanRows.some(row => row.some(item => item.si <= d && item.ei >= d)) || daySingles.length > 0;
+
+        const slotDiv = document.createElement("div");
+        slotDiv.className = "layer-slot" + (!hasContent ? " layer-slot-empty" : "");
+        slotDiv.setAttribute("data-layer-slot", layerName);
+        if(!layerVis[layerName]) slotDiv.classList.add("hidden");
+        if(totalSlots > 0) slotDiv.style.minHeight = (totalSlots * 19 + Math.max(0, totalSlots - 1) * 2) + "px";
+        div.appendChild(slotDiv);
+
+        // 1) Render span sub-rows with placeholders for consistent positioning
+        spanRows.forEach(row => {
+          const spanItem = row.find(item => item.si <= d && item.ei >= d);
+          if(spanItem) {
+            const t = spanItem.task;
+            const s = parseDate(t.start), en = parseDate(t.end)||parseDate(t.start);
+            const isStart = isSameDay(cell.date, s||en);
+            const isEnd = isSameDay(cell.date, en||s);
+            const isRowStart = !isStart && d === 0;
+            slotDiv.appendChild(_mkEvent(t, true, isStart, isEnd, isRowStart));
+          } else {
+            // Invisible placeholder to hold the row position
+            const ph = document.createElement("div");
+            ph.style.cssText = "height:19px;margin-bottom:2px;visibility:hidden;";
+            slotDiv.appendChild(ph);
+          }
+        });
+
+        // 2) Render single-day tasks below spans
+        daySingles.forEach(t => {
+          slotDiv.appendChild(_mkEvent(t, false, true, true, false));
+        });
+      });
 
       weekDiv.appendChild(div);
     }
