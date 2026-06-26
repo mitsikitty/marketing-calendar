@@ -1291,7 +1291,8 @@ function render() {
 
         const showTitle = !isSpan || isStart || isRowStart;
         if(showTitle) {
-          if(t.status && (t.layer !== "campaigns" || t.isSubtask) && t.layer !== "holidays") {
+          const _hideStatus = new Set(["event marker","selling season"]);
+          if(t.status && (t.layer !== "campaigns" || t.isSubtask) && t.layer !== "holidays" && !_hideStatus.has(t.status.toLowerCase().trim())) {
             const statusSpan = document.createElement("span");
             statusSpan.className = "event-status";
             statusSpan.textContent = sentenceCase(t.status);
