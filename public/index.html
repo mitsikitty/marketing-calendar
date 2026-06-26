@@ -795,7 +795,7 @@ function _showTip(e, t) {
   const typeName = t.type?.name||(typeof t.type==="string"?t.type:"");
   const locObjs = (t.locations||[]).map(l => typeof l==="string" ? {name:l,color:null} : {name:l?.name||"",color:l?.color||null}).filter(x=>x.name);
   let h = `<div class="tt-title">${escapeHtml(t.title)}</div>`;
-  if(t.campaign && t.layer !== "campaigns") h += `<div class="tt-row">Campaign: ${escapeHtml(t.campaign)}</div>`;
+  if(t.campaign && (t.layer !== "campaigns" || t.isSubtask)) h += `<div class="tt-row">Campaign: ${escapeHtml(t.campaign)}</div>`;
   if(t.status) h += `<div class="tt-row">Status: ${escapeHtml(sentenceCase(t.status))}</div>`;
   if(t.publishDate) h += `<div class="tt-row">📅 Publish: ${fmtDisp(t.publishDate)}</div>`;
   else if(t.start) {
@@ -1291,7 +1291,7 @@ function render() {
 
         const showTitle = !isSpan || isStart || isRowStart;
         if(showTitle) {
-          if(t.status && t.layer !== "campaigns" && t.layer !== "holidays") {
+          if(t.status && (t.layer !== "campaigns" || t.isSubtask) && t.layer !== "holidays") {
             const statusSpan = document.createElement("span");
             statusSpan.className = "event-status";
             statusSpan.textContent = sentenceCase(t.status);
@@ -1301,7 +1301,7 @@ function render() {
           }
           const titleDiv = document.createElement("div");
           titleDiv.className = "event-title";
-          const campaignSuffix = (t.campaign && t.layer !== "campaigns") ? ` (${t.campaign})` : "";
+          const campaignSuffix = (t.campaign && (t.layer !== "campaigns" || t.isSubtask)) ? ` (${t.campaign})` : "";
           if(campaignSuffix) {
             titleDiv.innerHTML = escapeHtml(t.title) + `<span style="opacity:0.7"> (${escapeHtml(t.campaign)})</span>`;
           } else {

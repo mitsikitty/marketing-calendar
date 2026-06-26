@@ -155,12 +155,21 @@ export default async (req: Request, context: Context) => {
     if (action === "tasks") {
       const results = await Promise.all(
         Object.entries(LISTS).map(async ([layer, listId]) => {
+          const includeSubtasks = layer === "campaigns";
           const res = await fetch(
-            `${BASE}/list/${listId}/task?include_closed=true&subtasks=false`,
+            `${BASE}/list/${listId}/task?include_closed=true&subtasks=${includeSubtasks}`,
             { headers: { Authorization: CLICKUP_TOKEN } }
           );
           const data = await res.json() as any;
-          return (data.tasks || []).map((t: any) => {
+          const rawTasks: any[] = data.tasks || [];
+
+          // Build parent-name lookup so subtasks can show their parent campaign name
+          const nameById = new Map<string, string>();
+          if (includeSubtasks) {
+            for (const t of rawTasks) nameById.set(t.id, t.name);
+          }
+
+          return rawTasks.map((t: any) => {
             const cf = t.custom_fields || [];
             // "Content Type" (748aec8a) for pill display; "Campaign Type" (3cebb834) for sublayer
             const contentTypeField  = cf.find((f: any) => f.name === "Content Type" && f.type === "drop_down");
@@ -180,9 +189,12 @@ export default async (req: Request, context: Context) => {
             // For campaigns, due_date is the genuine campaign end.
             // For content/alwayson/paid, only use explicit "End date" field; never fall
             // back to due_date (which would turn a single-publish-day task into a span).
-            const computedEnd = layer === "campaigns"
+            const isSubtask = !!t.parent;
+            const computedEnd = (layer === "campaigns" && !isSubtask)
               ? (endDate || publishDate || (t.due_date ? tsToDate(Number(t.due_date)) : startDate))
               : (endDate || startDate);
+
+            const parentCampaignName = isSubtask ? (nameById.get(t.parent) || null) : null;
 
             return {
               id:               t.id,
@@ -199,7 +211,8 @@ export default async (req: Request, context: Context) => {
               type:        resolveDropdown(contentTypeField, CONTENT_TYPE_MAP, CONTENT_TYPE_BY_INDEX),
               campaignType: resolveDropdown(campaignTypeField, CAMPAIGN_TYPE_MAP),
               locations:   resolveLocations(publishLocField),
-              campaign:    resolveParentCampaign(cf),
+              campaign:    parentCampaignName || resolveParentCampaign(cf),
+              isSubtask,
             };
           });
         })
