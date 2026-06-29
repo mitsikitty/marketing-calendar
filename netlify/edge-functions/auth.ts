@@ -49,24 +49,26 @@ export default async (req: Request, context: Context) => {
     }
 
     // Password form submission
+    // Preserve the original redirect target to avoid nesting /_auth URLs
+    const redirectTarget = url.searchParams.get("redirect") || req.url;
+
     if (req.method === "POST" && url.pathname === "/_auth") {
       const form = await req.formData();
       const submitted = (form.get("password") as string) ?? "";
       if (submitted === password) {
         const cookieVal = await makeToken(password, secret);
-        const redirectTo = url.searchParams.get("redirect") ?? "/";
         return new Response(null, {
           status: 302,
           headers: {
-            Location: redirectTo,
+            Location: redirectTarget,
             "Set-Cookie": `${COOKIE}=${encodeURIComponent(cookieVal)}; Path=/; HttpOnly; SameSite=Strict`
           }
         });
       }
-      return loginPage(req.url, true);
+      return loginPage(redirectTarget, true);
     }
 
-    return loginPage(req.url, false);
+    return loginPage(redirectTarget, false);
   } catch (err) {
     return new Response("Auth error: " + String(err), { status: 500 });
   }
