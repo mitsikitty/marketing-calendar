@@ -776,7 +776,7 @@ async function loadTasks() {
   try {
     const res = await fetch(`${API}?action=tasks`);
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
-    tasks = await res.json();
+    tasks = (await res.json()).filter(t => (t.status||"").toLowerCase().trim() !== "cancelled");
     tasks.forEach(t => { t.sublayer = deriveSublayer(t); });
     dot.className = "status-dot";
     dot.title = `Refreshed ${new Date().toLocaleTimeString("en-AU")}`;
