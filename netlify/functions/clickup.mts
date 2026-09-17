@@ -156,12 +156,19 @@ export default async (req: Request, context: Context) => {
       const results = await Promise.all(
         Object.entries(LISTS).map(async ([layer, listId]) => {
           const includeSubtasks = layer === "campaigns";
-          const res = await fetch(
-            `${BASE}/list/${listId}/task?include_closed=true&subtasks=${includeSubtasks}`,
-            { headers: { Authorization: CLICKUP_TOKEN } }
-          );
-          const data = await res.json() as any;
-          const rawTasks: any[] = data.tasks || [];
+          const rawTasks: any[] = [];
+          let page = 0;
+          while (true) {
+            const res = await fetch(
+              `${BASE}/list/${listId}/task?include_closed=true&subtasks=${includeSubtasks}&page=${page}`,
+              { headers: { Authorization: CLICKUP_TOKEN } }
+            );
+            const data = await res.json() as any;
+            const batch: any[] = data.tasks || [];
+            rawTasks.push(...batch);
+            if (batch.length < 100) break;
+            page++;
+          }
 
           // Build parent-name lookup so subtasks can show their parent campaign name
           const nameById = new Map<string, string>();
