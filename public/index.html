@@ -152,6 +152,15 @@ body {
   text-transform:capitalize; white-space:nowrap; pointer-events:none;
   padding:1px 4px; border-radius:3px; line-height:1.5;
 }
+.event-status svg { display:inline-block; vertical-align:-1px; width:8px; height:8px; margin-right:1px; flex-shrink:0; }
+.event-type-icon {
+  position:absolute; top:2px; right:3px;
+  width:13px; height:13px;
+  background:#fff; border-radius:2px;
+  display:flex; align-items:center; justify-content:center;
+  pointer-events:none; box-shadow:0 0 0 0.5px rgba(0,0,0,0.08);
+}
+.event-type-icon svg { width:9px; height:9px; }
 .event-pills { display:flex; gap:2px; flex-wrap:wrap; margin-top:2px; }
 
 /* Resize handles */
@@ -735,6 +744,18 @@ function contrastColor(hex) {
   const r=parseInt(h.slice(0,2),16)||0,g=parseInt(h.slice(2,4),16)||0,b=parseInt(h.slice(4,6),16)||0;
   return (r*299+g*587+b*114)/1000>140?"#111":"#fff";
 }
+function _typeIconSvg(typeName) {
+  const video = '<path d="M4.5 4h10A3.5 3.5 0 0 1 18 7.5v1.1l3.1-1.95A1.25 1.25 0 0 1 23 7.7v8.6a1.25 1.25 0 0 1-1.9 1.05L18 15.4v1.1a3.5 3.5 0 0 1-3.5 3.5h-10A3.5 3.5 0 0 1 1 16.5v-9A3.5 3.5 0 0 1 4.5 4Z"/>';
+  const gallery = '<path d="M5 1h10a4 4 0 0 1 3.7 2.5H9A5.5 5.5 0 0 0 3.5 9v9.7A4 4 0 0 1 1 15V5a4 4 0 0 1 4-4Z"/><path fill-rule="evenodd" d="M9 5h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V9a4 4 0 0 1 4-4ZM20 10a1.75 1.75 0 1 0-3.5 0 1.75 1.75 0 0 0 3.5 0ZM7 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2.7l-2.4-1.05a2.2 2.2 0 0 0-2.05.15l-2 1.2-2.8-2.2a2.2 2.2 0 0 0-2.65 0Z"/>';
+  const image = '<path fill-rule="evenodd" d="M5.5 2h13A3.5 3.5 0 0 1 22 5.5v13a3.5 3.5 0 0 1-3.5 3.5h-13A3.5 3.5 0 0 1 2 18.5v-13A3.5 3.5 0 0 1 5.5 2ZM18.9 7.4a1.9 1.9 0 1 0-3.8 0 1.9 1.9 0 0 0 3.8 0ZM4 14.2v4.3A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-4.4l-3.1-1.25a2.4 2.4 0 0 0-2.3.25l-2.2 1.5-3.5-2.85a2.3 2.3 0 0 0-2.7-.05Z"/>';
+  const phone = '<path fill-rule="evenodd" d="M8 1h8a3.5 3.5 0 0 1 3.5 3.5v15A3.5 3.5 0 0 1 16 23H8a3.5 3.5 0 0 1-3.5-3.5v-15A3.5 3.5 0 0 1 8 1ZM8 2.5A2 2 0 0 0 6 4.5v15a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-15a2 2 0 0 0-2-2h-.65l-.8 1.05c-.3.4-.65.55-1.15.55h-2.8c-.5 0-.85-.15-1.15-.55l-.8-1.05Z"/><rect x="10" y="18.9" width="4" height="1.5" rx=".75"/>';
+  const envelope = '<path fill-rule="evenodd" d="M7.5 1.5h9A3 3 0 0 1 19.5 4.5v1.4l2.25 2A3.6 3.6 0 0 1 23 10.6v8.9a3 3 0 0 1-3 3H4a3 3 0 0 1-3-3v-8.9a3.6 3.6 0 0 1 1.25-2l2.25-2.7V4.5a3 3 0 0 1 3-3ZM5.1 6.1v5.4c0 .6.3 1.1.8 1.45l4.3 3.05a3.1 3.1 0 0 0 3.6 0l4.3-3.05c.5-.35.8-.85.8-1.45V6.1l1.5 1.3v4.1a3.3 3.3 0 0 1-1.45 2.7l-4.3 3.05a4.6 4.6 0 0 1-5.3 0L5.05 14.2a3.3 3.3 0 0 1-1.45-2.7V7.4ZM8 5.5a.75.75 0 0 0 0 1.5h5a.75.75 0 0 0 0-1.5Zm0 4a.75.75 0 0 0 0 1.5h8a.75.75 0 0 0 0-1.5Z"/>';
+  const globe = '<path d="M10.5 1.2C8.8 2 7.4 4.2 6.7 7h4.55V1.1ZM13.5 1.2C15.2 2 16.6 4.2 17.3 7h-4.55V1.1ZM7.7 1.85A11 11 0 0 0 2.2 7h2.95c.5-2.1 1.4-3.85 2.55-5.15ZM16.3 1.85A11 11 0 0 1 21.8 7h-2.95c-.5-2.1-1.4-3.85-2.55-5.15ZM1.65 8.5a11 11 0 0 0 0 7h3.2a23 23 0 0 1 0-7Zm4.75 0a22 22 0 0 0 0 7h4.85v-7Zm6.35 0v7h4.85a22 22 0 0 0 0-7Zm6.4 0a23 23 0 0 1 0 7h3.2a11 11 0 0 0 0-7ZM2.2 17a11 11 0 0 0 5.5 5.15C6.55 20.85 5.65 19.1 5.15 17Zm4.5 0c.7 2.8 2.1 5 3.8 5.8l.75.1V17Zm6.05 0v5.9l.75-.1c1.7-.8 3.1-3 3.8-5.8Zm6.1 0c-.5 2.1-1.4 3.85-2.55 5.15A11 11 0 0 0 21.8 17Z"/>';
+  const n = (typeName||"").toLowerCase().trim();
+  const map = {"tiktok & reel":video,"tiktok":video,"reel":video,"carousel":gallery,"image":image,"stories":phone,"edm":envelope,"fb post":globe,"blog":globe,"pop up":globe,"web banner":globe,"landing page":globe,"meta ads":globe,"google ads":globe};
+  const paths = map[n] || globe;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">${paths}</svg>`;
+}
 function typePillClass(t) {
   const m={TikTok:"pill-tiktok",Reel:"pill-reel",Carousel:"pill-carousel",Stories:"pill-stories",Image:"pill-image","FB Post":"pill-fbpost",EDM:"pill-edm",Blog:"pill-blog","Meta Ads":"pill-metaads","Google Ads":"pill-googleads"};
   return m[t]||"pill-generic";
@@ -1292,14 +1313,26 @@ function render() {
 
         const showTitle = !isSpan || isStart || isRowStart;
         if(showTitle) {
-          const _hideStatus = new Set(["event marker","selling season"]);
-          if(t.status && (t.layer !== "campaigns" || t.isSubtask) && t.layer !== "holidays" && !_hideStatus.has(t.status.toLowerCase().trim())) {
-            const statusSpan = document.createElement("span");
-            statusSpan.className = "event-status";
-            statusSpan.textContent = sentenceCase(t.status);
-            statusSpan.style.background = t.statusColor || "#6b7280";
-            statusSpan.style.color = contrastColor(t.statusColor || "#6b7280");
-            evDiv.appendChild(statusSpan);
+          const _contentSublayers = new Set(["content","alwayson","paidcontent"]);
+          const typeName = t.type?.name||(typeof t.type==="string"?t.type:"");
+          const skipTypes = new Set(["Campaign","Always On","Selling Season"]);
+          const hasType = typeName && !skipTypes.has(typeName);
+          if(_contentSublayers.has(t.sublayer) && hasType) {
+            const iconDiv = document.createElement("span");
+            iconDiv.className = "event-type-icon";
+            iconDiv.style.color = t.statusColor || "#6b7280";
+            iconDiv.innerHTML = _typeIconSvg(typeName);
+            evDiv.appendChild(iconDiv);
+          } else {
+            const _hideStatus = new Set(["event marker","selling season"]);
+            if(t.status && (t.layer !== "campaigns" || t.isSubtask) && t.layer !== "holidays" && !_hideStatus.has(t.status.toLowerCase().trim())) {
+              const statusSpan = document.createElement("span");
+              statusSpan.className = "event-status";
+              statusSpan.textContent = sentenceCase(t.status);
+              statusSpan.style.background = t.statusColor || "#6b7280";
+              statusSpan.style.color = contrastColor(t.statusColor || "#6b7280");
+              evDiv.appendChild(statusSpan);
+            }
           }
           const titleDiv = document.createElement("div");
           titleDiv.className = "event-title";
