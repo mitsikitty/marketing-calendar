@@ -818,7 +818,7 @@ function _showTip(e, t) {
   const locObjs = (t.locations||[]).map(l => typeof l==="string" ? {name:l,color:null} : {name:l?.name||"",color:l?.color||null}).filter(x=>x.name);
   let h = `<div class="tt-title">${escapeHtml(t.title)}</div>`;
   if(t.campaign && (t.layer !== "campaigns" || t.isSubtask)) h += `<div class="tt-row">Campaign: ${escapeHtml(t.campaign)}</div>`;
-  if(t.status) h += `<div class="tt-row">Status: ${escapeHtml(sentenceCase(t.status))}</div>`;
+  if(t.status) h += `<div class="tt-row">Status: <span style="color:${t.statusColor||'#6b7280'};font-weight:700">${escapeHtml(sentenceCase(t.status))}</span></div>`;
   if(t.publishDate) h += `<div class="tt-row">📅 Publish: ${fmtDisp(t.publishDate)}</div>`;
   else if(t.start) {
     const dateStr = t.end&&t.end!==t.start ? `${fmtDisp(t.start)} → ${fmtDisp(t.end)}` : fmtDisp(t.start);
