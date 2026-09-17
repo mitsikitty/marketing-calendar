@@ -1317,11 +1317,15 @@ function render() {
           const typeName = t.type?.name||(typeof t.type==="string"?t.type:"");
           const skipTypes = new Set(["Campaign","Always On","Selling Season"]);
           const hasType = typeName && !skipTypes.has(typeName);
-          if(_contentSublayers.has(t.sublayer) && hasType) {
+          if(_contentSublayers.has(t.sublayer)) {
             const iconDiv = document.createElement("span");
             iconDiv.className = "event-type-icon";
             iconDiv.style.color = t.statusColor || "#6b7280";
-            iconDiv.innerHTML = _typeIconSvg(typeName);
+            if(hasType) {
+              iconDiv.innerHTML = _typeIconSvg(typeName);
+            } else {
+              iconDiv.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" stroke-dasharray="3 3"/></svg>';
+            }
             evDiv.appendChild(iconDiv);
           } else {
             const _hideStatus = new Set(["event marker","selling season"]);
